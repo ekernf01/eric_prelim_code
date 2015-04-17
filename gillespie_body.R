@@ -23,7 +23,7 @@
 # 
 # ——————————————————————————————————————————————
 gillespie_body <- cxxfunction(
-                includes='#include <gsl_rng.h>'
+                includes='#include <RcppArmadilloExtensions/sample.h>',
                 signature(init_x_r="numeric", sto_mat_r="numeric", 
                           rxn_rates_r="numeric", T_sim_r="numeric"),
                 plugin="Rcpp", 
@@ -54,7 +54,7 @@ gillespie_body <- cxxfunction(
     }
     t_i = t_i + rexp(1)[0];
     if(t_i<T_tot){
-      rxn_type_temp_indic = i_just_want_a_fucking_integer(num_rxn_types, 1, alpha)[0];
+      rxn_type_temp_indic = RcppArmadillo::sample(num_rxn_types, 1, FALSE, alpha);
       for(int i; i<num_rxn_types; i++){
         if(rxn_type_temp_indic){rxn_type = i;}
       }
