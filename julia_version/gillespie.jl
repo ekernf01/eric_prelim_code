@@ -57,10 +57,11 @@ function gillespie_input_ok(init_x, sto_mat,rxn_entry_mat, rxn_rates, T_sim)
     error("gillespie received negative init_x")
     return false
   end
-  if sum(sto_mat.<0)>0
-    error("gillespie received negative sto_mat")
-    return false
-  end
+  #Negative values should be ok here!
+#   if sum(sto_mat.<0)>0
+#     error("gillespie received negative sto_mat")
+#     return false
+#   end
   if sum(rxn_entry_mat.<0)>0
     error("gillespie received negative rxn_entry_mat")
     return false
@@ -79,7 +80,7 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
     error("gillespie received bad input.")
   else
     t_spent = 0
-    rxn_times = Array(Float64, 1)
+    rxn_times = Array(Float64, 0)
     rxn_types = Array(Int64, 0)
     current_x = init_x
     num_rxns_occ = 0
@@ -88,7 +89,8 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
 
     while(t_spent < T_sim)
       #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
-      alpha = rxn_rates
+
+      alpha = copy(rxn_rates)
       for rxn_index = [1:num_rxn_types]
         for mol_index = [1:num_molecule_types]
           alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], rxn_entry_mat[mol_index, rxn_index])
@@ -96,8 +98,16 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
       end
       alpha_sum = sum(alpha)
 
-      #Step forward in time
-      t_spent = t_spent + rand(Exponential(alpha_sum))
+      #Perchance we're totally out of molecules, stop the simulation.
+      #(It'll stop: see next block)
+      #Otherwise, step forward in time
+      if alpha_sum == 0
+        t_spent = T_sim + 0.00000001 #Overshoot microscopically just in case I put a > instead of >=
+      else
+        tau = rand(Exponential(1/alpha_sum))
+        t_spent = t_spent + tau
+      end
+
 
       #If time's not up, update the molecule counts, the reactions
       #count, and the reaction times and types list
@@ -114,3 +124,5 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
   end
   return current_x, num_rxns_occ, rxn_types,rxn_times, t_spent
 end
+
+
