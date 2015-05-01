@@ -1,16 +1,6 @@
 Implementation plan for stat 518
 
 ——————————————————————————————————————————————
-prereqs.r--still not adapted to Julia
-A file containing all of the preliminary stuff--R packages to load, for instance.
-——————————————————————————————————————————————
-So far, we need:
-  Rcpp
-  RcppArmadillo
-  inline
-
-
-——————————————————————————————————————————————
 experiment1_settings.jl
 The inputs to the forward simulator are central to the implementation, but they will have to change with different experiments. For a given experiment, I will store them in a file named for the experiment.
 ——————————————————————————————————————————————
@@ -20,9 +10,10 @@ Here are the inputs to the forward simulator:
         c, reaction rates, MEASURED IN INTENSITY PER SECOND
         T_sim, the time over which to simulate, MEASURED IN SECONDS
 
+
 ——————————————————————————————————————————————
-LFSMC.jl
-The main inference method for this paper is a sequential Monte Carlo scheme.
+pMCMC.jl
+The main inference method for this paper is a particle MCMC scheme.
 Unit tests should:
 --feed it garbage: strings, negative numbers and fractions where only positive numbers or integers should be, matrices where it needs vectors, stuff that's the wrong length
 --Run it using a simple forward model in place of Gillespie and a simple prior (normal-normal?) and see if the samples come from the right shape
@@ -30,13 +21,13 @@ Unit tests should:
 Given:
     obs_d, vector of data observed incompletely and with measurement error
     obs_t, times at which data is observed
-    sigma, the SD of the measurement error model
-    h, a bandwidth that is a tuning parameter for the SMC
-    num_particles, another parameter of the SMC scheme
+    sigma, the SD of the measurement error model (separate function for measurement error?)
+    h, a bandwidth that is a tuning parameter for the pMCMC
+    num_particles, another parameter of the pMCMC scheme
     All the inputs of the forward simulator:
         init_x, the particle counts
         sto_mat, the stoichiometry matrix
-        c, reaction rates, MEASURED IN INTENSITY PER SECOND
+        (sample from prior on) rxn_rates, which are the reaction rates MEASURED IN INTENSITY PER SECOND
         T_sim, the time over which to simulate, MEASURED IN SECONDS
 
 It verifies:
@@ -48,9 +39,8 @@ It verifies:
 
 Then, it creates other variables:
     n, initialized to the length of obs_t (or obs_d)
-    c_samp, an array where the ith element will be a sample from P(c|stuff) where “stuff” is the first i observations. Because the prior is included, i.e. i starts at 0, this will be longer by 1 than obs_t and obs_d. Initialized to sentinel values. If that
+    rxn_rate_samps, a list where the ith element will be a sample from P(rxn_rates|stuff) where “stuff” is the first i observations. Because the prior is included, i.e. i starts at 0, this will be longer by 1 than obs_t and obs_d. Initialized to sentinel values. If that
 
-    Call a subroutine to get:
     c_samp, a large sample from the prior distribution on the reaction rates
 Finally, it carries out the SMC.
     for i from 1 to n:
@@ -62,8 +52,7 @@ It returns
 
 
 ——————————————————————————————————————————————
-The subroutine SMC_one_step
-This seems to be the most sensible place to parallelize. (?)
+The subroutine pMCMC_one_step
 ——————————————————————————————————————————————
 Given:
 

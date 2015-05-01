@@ -18,6 +18,7 @@
 #      of type i enter a rxn of type j (not a net change)
 # rxn_rates, reaction rates, MEASURED IN INTENSITY PER SECOND
 # T_sim, the time over which to simulate, MEASURED IN SECONDS
+# inside_sampler, a boolean telling it whether this run is inside the LF-pMCMC
 
 # It verifies:
 
@@ -29,13 +30,17 @@
 
 # Then, it runs the Gillespie algorithm to produce:
 
-# rxn_times, vector of times at which reactions occur (for convenience, rxn_time[0] should be 0)
+# rxn_times, vector of times at which reactions occur (for convenience, rxn_time[1] should be 0)
 # rxn_types, list of reactions that occured (integers that index sto_mat)
-# x_path, a list of vectors with zero element init_x and i element showing the molecule counts between rxn_time[i] and rxn_time[i].
+# x_path, a list of vectors with first element init_x and ith element showing the molecule counts between rxn_time[i-1] and rxn_time[i].
 
 # ——————————————————————————————————————————————
 
-function gillespie_input_ok(init_x, sto_mat,rxn_entry_mat, rxn_rates, T_sim)
+function gillespie_input_ok(init_x::Array{Int,1},
+                            sto_mat::Array{Int,2},
+                            rxn_entry_mat::Array{Int,2},
+                            rxn_rates::Array{Number,1},
+                            T_sim::Number)
 # rxn_entry_mat is same size as sto_mat
 # length of init_x matches num rows of sto_mat
 # length of rxn_rates matches num cols of sto_mat
@@ -75,7 +80,7 @@ end
 
 using Distributions
 
-function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
+function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim, inside_sampler)
   if(!gillespie_input_ok(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim))
     error("gillespie received bad input.")
   else
@@ -86,6 +91,9 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
     num_rxns_occ = 0
     num_molecule_types = size(sto_mat)[1]
     num_rxn_types = size(sto_mat)[2]
+    x_path = Array{Int64,1}[]
+    push!(x_path, init_x)
+    push!(rxn_times, 0)
 
     while(t_spent < T_sim)
       #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
@@ -98,11 +106,11 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
       end
       alpha_sum = sum(alpha)
 
-      #Perchance we're totally out of molecules, stop the simulation.
+      #Perchance we've no propensity to react, stop the simulation.
       #(It'll stop: see next block)
       #Otherwise, step forward in time
       if alpha_sum == 0
-        t_spent = T_sim + 0.00000001 #Overshoot microscopically just in case I put a > instead of >=
+        t_spent = T_sim
       else
         tau = rand(Exponential(1/alpha_sum))
         t_spent = t_spent + tau
@@ -111,7 +119,7 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
 
       #If time's not up, update the molecule counts, the reactions
       #count, and the reaction times and types list
-      if(t_spent < T_sim)
+      if(t_spent <= T_sim)
         current_rxn_type = rand(Categorical(alpha/alpha_sum))
         current_x = current_x + sto_mat[:,current_rxn_type]
         num_rxns_occ = num_rxns_occ + 1
@@ -119,10 +127,16 @@ function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim)
         #! means that this modifies the array that it is given
         push!(rxn_times, t_spent)
         push!(rxn_types, current_rxn_type)
+        if(!inside_sampler)
+          push!(x_path, current_x)
+        end
       end
     end
   end
-  return current_x, num_rxns_occ, rxn_types,rxn_times, t_spent
+  if(inside_sampler)
+    return current_x
+  else
+    return x_path, current_x, num_rxns_occ, rxn_types,rxn_times, t_spent
+  end
 end
-
 
