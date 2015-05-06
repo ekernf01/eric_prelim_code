@@ -35,12 +35,11 @@
 # x_path, a list of vectors with first element init_x and ith element showing the molecule counts between rxn_time[i-1] and rxn_time[i].
 
 # ——————————————————————————————————————————————
-
-function gillespie_input_ok(init_x::Array{Int,1},
-                            sto_mat::Array{Int,2},
-                            rxn_entry_mat::Array{Int,2},
-                            rxn_rates::Array{Number,1},
-                            T_sim::Number)
+function gillespie_input_ok(init_x,
+                            sto_mat,
+                            rxn_entry_mat,
+                            rxn_rates,
+                            T_sim)
 # rxn_entry_mat is same size as sto_mat
 # length of init_x matches num rows of sto_mat
 # length of rxn_rates matches num cols of sto_mat
@@ -55,6 +54,8 @@ function gillespie_input_ok(init_x::Array{Int,1},
     return false
   end
   if size(sto_mat, 2)!=size(rxn_rates,1)
+    println(size(sto_mat))
+    println(size(rxn_rates))
     error("gillespie received sto_mat & rxn_rates unmatched in size.")
     return false
   end
@@ -80,7 +81,14 @@ end
 
 using Distributions
 
-function gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim, inside_sampler)
+function gillespie(init_x,
+                            sto_mat,
+                            rxn_entry_mat,
+                            rxn_rates,
+                            T_sim,
+                            inside_sampler)
+  init_x = vec(init_x)
+  rxn_rates = vec(rxn_rates)
   if(!gillespie_input_ok(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim))
     error("gillespie received bad input.")
   else
