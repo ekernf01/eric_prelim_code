@@ -38,13 +38,18 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
   true_init_x = [50]
   sto_mat = reshape([-1, 1],1,2)
   rxn_entry_mat = reshape([1, 0],1,2)
-  t_interval = 3 #300
-  num_intervals = 6 #24
+  t_interval = 1 #300
+  num_intervals = 50 #24
   T_sim = t_interval*num_intervals
   t_obs = t_interval*[1:num_intervals]
   molecule_index = 1
-  noise_sd = 100
+  noise_sd = 1
   inside_sampler = false
+
+  bandwidth = 0.001
+  num_samples_desired = 100000
+  burnin_len = 1e3
+  thin_len = 5
 
   #-----------------Forward simulation to generate data------------------
   x_path, current_x, num_rxns_occ, rxn_types,rxn_times, t_spent = gillespie(true_init_x,
@@ -73,12 +78,20 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
 
   #-----------------Inference-------------------------------
   if(actually_run_MCMC==true)
-    num_samples_desired = 10000
-    burnin_len = 1e3
-    thin_len = 5
-    prior_sample_thetas = 10.^(-4*rand(num_samples_desired, 2)) #log uniform prior on 1*10^-4 to 1*10^0
+    prior_sample_thetas = 10.^(-4*rand(2,num_samples_desired)) #log uniform prior on 1*10^-4 to 1*10^0
     prior_sample = Sample_state_and_params_type(prior_sample_thetas,
-                        reshape(repmat(true_init_x, num_samples_desired),num_samples_desired,1))
+                        reshape(repmat(true_init_x, num_samples_desired),1,num_samples_desired))
+
+    #Some records for later
+    metadata_to_save = string("This test was run at time ", now(), " with ",
+                            "observations at intervals of ", t_interval,
+                            " from time zero to ", T_sim,
+                            " with a noise sd of ", noise_sd , ". ",
+                            " There were ",  num_samples_desired, " particles, ",
+                            " with a log-uniform prior between 1 and 1e-4 and ",
+                            " true rates of ", true_rxn_rates[1], " and ", true_rxn_rates[2], "."
+                            )
+
     posterior_sample, num_acc = pMCMC(d_obs,
                              t_obs,
                              prior_sample,
@@ -88,41 +101,62 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
                              noise_sd,
                              molecule_index,
                              sto_mat,
-                             rxn_entry_mat)
-    return posterior_sample, prior_sample, true_rxn_rates, t_obs, d_obs, x_path, true_init_x, num_acc
+                             rxn_entry_mat,
+                             bandwidth)
+    return posterior_sample, prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save
   end
   return true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x
 end
 include("prelim_software_setup.jl")
 
-#Set things up, bt don't pull the trigger on the takes-fucking-forever pMCMC
-true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x = pMCMC_setup_experiment_1(actually_run_MCMC=false)
+#Set things up, bt don't pull the trigger on the pMCMC
+#true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x = pMCMC_setup_experiment_1(actually_run_MCMC=false)
 
-x_obs_vals = Array(Int64,length(t_obs))
-for i in 1:length(x_obs)
-  x_obs_vals[i] = x_obs[i][1]
-end
+tic()
+#Actually run the sampler; update metadata_to_save with time taken
+  Profile.clear()
+  posterior_sample,prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save = @profile pMCMC_setup_experiment_1(actually_run_MCMC=true)
+  ProfileView.view()
+  time_taken = toc()
+  metadata_to_save = string(metadata_to_save, " It took ", time_taken, " seconds.")
 
 #make a plot of the simulated trajectory
-sim_trajec_plot = FramedPlot(
+x_obs_vals = Array(Int64,length(t_obs))
+  for i in 1:length(x_obs)
+    x_obs_vals[i] = x_obs[i][1]
+  end
+  sim_trajec_plot = FramedPlot(
            title="Hidden (black) and observed (red) states from simulation",
            xlabel="Time",
            ylabel="State")
   add(sim_trajec_plot, Points(t_obs, x_obs_vals))
   add(sim_trajec_plot, Points(t_obs, d_obs, "color","red"))
 
-#Actually run the sampler
-posterior_sample,prior_sample, true_rxn_rates, t_obs, d_obs, x_path, true_init_x, num_acc = pMCMC_setup_experiment_1(actually_run_MCMC=true)
-num_acc
-
+#plot prior and posterior
 post_plot = plot_from_MCMC(posterior_sample, 24)
+  add(post_plot, Points(true_rxn_rates[1],true_rxn_rates[2], "color", "red"))
 pri_plot = plot_from_MCMC(prior_sample, 0)
-posterior_sample.state[1:10,1]
-posterior_sample.params[1:10,:]
 
-state_hist = FramedPlot(
-  title="Sampled num molecules at end of simulation",
-         xlabel="Num molecules",
-         ylabel="Y axis")
-  add(state_hist, Histogram(hist(convert(Array{FloatingPoint,1}, posterior_sample.state[:,1]))...))
+#Make a new folder named by experiment and date. Save profiler data, plots of prior and posterior, and
+
+today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/experiment1",now())
+mkdir(today_filepath)
+#to save prior and posterior plots and plot of data
+  savefig(post_plot, string(today_filepath, "/post.png"))
+  savefig(pri_plot, string(today_filepath, "/prior.png"))
+  savefig(sim_trajec_plot, string(today_filepath, "/sim_trajec.pdf"))
+
+#To save important metadata
+  @save string(today_filepath, "/metadata") metadata_to_save
+
+#To save profiler data
+bt, lidict = Profile.retrieve()
+  @save string(today_filepath, "/profiler_data") bt lidict
+
+
+#To load profiler data
+  #using HDF5, JLD, ProfileView
+  #@load today_filepath
+  #ProfileView.view(bt, lidict=lidict)
+
 

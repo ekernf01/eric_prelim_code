@@ -1,0 +1,5 @@
+This folder has data from a few tests I did as I was still tinkering with the profiler and adding in tic() and toc(). I used 100,000 particles, and it took on the order of minutes—80 seconds for the sampler after I fixed some wasteful code in the gillespie implementation. 
+
+Curiously, making plots afterwards also took a ton of time—will fix this.
+
+The posterior distributions are looking awful: if you notice in run_after_opt_gillespie, one is the right order of magnitude (0.001) as one of the true ones, and the other is too (0.1), except they are backwards!

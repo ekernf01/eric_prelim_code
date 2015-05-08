@@ -82,62 +82,66 @@ end
 using Distributions
 
 function gillespie(init_x,
-                            sto_mat,
-                            rxn_entry_mat,
-                            rxn_rates,
-                            T_sim,
-                            inside_sampler)
+                  sto_mat,
+                  rxn_entry_mat,
+                  rxn_rates,
+                  T_sim,
+                  inside_sampler)
   init_x = vec(init_x)
   rxn_rates = vec(rxn_rates)
-  if(!gillespie_input_ok(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim))
-    error("gillespie received bad input.")
-  else
-    t_spent = 0
+
+  current_x = init_x
+  num_rxns_occ = 0
+  num_molecule_types = size(sto_mat)[1]
+  num_rxn_types = size(sto_mat)[2]
+  t_spent = 0
+
+  if(!inside_sampler)
+    if(!gillespie_input_ok(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim))
+      error("gillespie received bad input.")
+    end
     rxn_times = Array(Float64, 0)
     rxn_types = Array(Int64, 0)
-    current_x = init_x
-    num_rxns_occ = 0
-    num_molecule_types = size(sto_mat)[1]
-    num_rxn_types = size(sto_mat)[2]
     x_path = Array{Int64,1}[]
     push!(x_path, init_x)
     push!(rxn_times, 0)
+  end
 
-    while(t_spent < T_sim)
-      #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
+  while(t_spent < T_sim)
+    #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
 
-      alpha = copy(rxn_rates)
-      for rxn_index = [1:num_rxn_types]
-        for mol_index = [1:num_molecule_types]
-          alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], rxn_entry_mat[mol_index, rxn_index])
-        end
+    alpha = copy(rxn_rates)
+    for rxn_index = [1:num_rxn_types]
+      for mol_index = [1:num_molecule_types]
+        alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], rxn_entry_mat[mol_index, rxn_index])
       end
-      alpha_sum = sum(alpha)
+    end
+    alpha_sum = sum(alpha)
 
-      #Perchance we've no propensity to react, stop the simulation.
-      #(It'll stop: see next block)
-      #Otherwise, step forward in time
-      if alpha_sum == 0
-        t_spent = T_sim
-      else
-        tau = rand(Exponential(1/alpha_sum))
-        t_spent = t_spent + tau
-      end
+    #Perchance we've no propensity to react, stop the simulation.
+    #(It'll stop: see next block)
+    #Otherwise, step forward in time
+    if alpha_sum == 0
+      t_spent = T_sim
+    else
+      tau = rand(Exponential(1/alpha_sum))
+      t_spent = t_spent + tau
+    end
 
 
-      #If time's not up, update the molecule counts, the reactions
-      #count, and the reaction times and types list
-      if(t_spent <= T_sim)
-        current_rxn_type = rand(Categorical(alpha/alpha_sum))
-        current_x = current_x + sto_mat[:,current_rxn_type]
+    #If time's not up, update the molecule counts, the reactions
+    #count, and the reaction times and types list
+    if(t_spent <= T_sim)
+      current_rxn_type = rand(Categorical(alpha/alpha_sum))
+      current_x = current_x + sto_mat[:,current_rxn_type]
+
+      #! means that this modifies the array that it is given
+      #also means logical negation
+      if(!inside_sampler)
         num_rxns_occ = num_rxns_occ + 1
-
-        #! means that this modifies the array that it is given
         push!(rxn_times, t_spent)
         push!(rxn_types, current_rxn_type)
-        if(!inside_sampler)
-          push!(x_path, current_x)
-        end
+        push!(x_path, current_x)
       end
     end
   end

@@ -134,3 +134,36 @@ decay_plot = gillespie_stoch_mean_test(20, 0.01*ones(Float64, 1), 100)
 savefig(decay_plot, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/gillespie_test_figure.pdf")
 
 
+function gillespie_stoch_mean_test_sampler_version(num_runs, k, n_0)
+  #Simplest reaction: exponential decay
+  T_sim = 50
+  tgrid = [0:0.1:T_sim]
+  init_x = [100]
+  sto_mat = -ones(Int64,1,1)
+  rxn_entry_mat = ones(Int64,1,1)
+  rxn_rates = 0.01*ones(Float64, 1)
+  inside_sampler = true
+
+  #initialize plot
+  decay_plot = FramedPlot(
+           title="Eric Tests Gillespie Implementation for the Version Run Inside the Sampler",
+           xlabel="Rxn Time",
+           ylabel="Remaining Molecules")
+
+  #plot many runs of the gillespie algo
+  mean_final = 0
+  for which_run = [1:num_runs]
+    current_x = gillespie(init_x, sto_mat, rxn_entry_mat, rxn_rates, T_sim, inside_sampler)
+    add(decay_plot,Points([0,T_sim], [init_x,current_x]))
+    mean_final = mean_final + current_x
+  end
+  mean_final = mean_final/num_runs
+
+  #plot the analytically computable stochastic mean
+  tgrid = [0,T_sim]
+  add(decay_plot,Points(tgrid, init_x.*exp(sto_mat[1,1].*rxn_rates[1,1].*tgrid), "color","red"))
+  add(decay_plot,Points(T_sim, mean_final, "color","blue"))
+  return decay_plot
+end
+decay_plot = gillespie_stoch_mean_test_sampler_version(200, 0.01*ones(Float64, 1), 100)
+
