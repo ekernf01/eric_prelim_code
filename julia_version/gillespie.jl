@@ -106,13 +106,15 @@ function gillespie(init_x,
     push!(x_path, init_x)
     push!(rxn_times, 0)
   end
-
+  unit_rate_expo = Exponential(1)
   while(t_spent < T_sim)
     #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
 
     alpha = copy(rxn_rates)
-    for rxn_index = [1:num_rxn_types]
-      for mol_index = [1:num_molecule_types]
+
+
+    for rxn_index = 1:num_rxn_types
+      for mol_index = 1:num_molecule_types
         alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], rxn_entry_mat[mol_index, rxn_index])
       end
     end
@@ -124,9 +126,11 @@ function gillespie(init_x,
     if alpha_sum == 0
       t_spent = T_sim
     else
-      tau = rand(Exponential(1/alpha_sum))
+      tau = rand(unit_rate_expo)/alpha_sum
       t_spent = t_spent + tau
     end
+
+
 
 
     #If time's not up, update the molecule counts, the reactions

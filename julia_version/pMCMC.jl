@@ -5,7 +5,7 @@ function pMCMC_single_stage!(samples_post_prev_stage,
                              burnin_len,
                              thin_len,
                              d_obs_this_stage,#algo only needs the next data point, not all at once
-                             noise_sd,
+                             noise_distribution,
                              obs_molecule_index,
                              sto_mat,
                              rxn_entry_mat,
@@ -49,8 +49,8 @@ function pMCMC_single_stage!(samples_post_prev_stage,
 
     #accept if A > 1 or A > unif, i.e. log>0 or log>log(unif)
     log_acc_rat =
-      log_measurement_density(prop_sample_state, noise_sd, obs_molecule_index, d_obs_this_stage) -
-      log_measurement_density(prev_sample_state, noise_sd, obs_molecule_index, d_obs_this_stage)
+      log_measurement_density(prop_sample_state, noise_distribution, obs_molecule_index, d_obs_this_stage) -
+      log_measurement_density(prev_sample_state, noise_distribution, obs_molecule_index, d_obs_this_stage)
     if (log_acc_rat > 0) || (log_acc_rat > log(rand(1)[1]))
       acc_sample_state = prop_sample_state
       acc_sample_params = prop_sample_params
@@ -80,7 +80,7 @@ function pMCMC(d_obs, t_obs, prior_sample,
                              num_samples_desired,
                              burnin_len,
                              thin_len,
-                             noise_sd,
+                             noise_distribution,
                              obs_molecule_index,
                              sto_mat,
                              rxn_entry_mat,
@@ -90,6 +90,8 @@ function pMCMC(d_obs, t_obs, prior_sample,
   I = length(d_obs)
   num_acc = zeros(Int64, I)
   for stage = 1:I #by stage, I mean how much data has been conditioned upon. At stage 2, we've conditioned on 2 data points.
+
+    println(stage)
 
     #fold in more data
     if stage>1
@@ -105,7 +107,7 @@ function pMCMC(d_obs, t_obs, prior_sample,
                              burnin_len,
                              thin_len,
                              d_obs_this_stage,#algo only needs the next data point, not all at once
-                             noise_sd,
+                             noise_distribution,
                              obs_molecule_index,
                              sto_mat,
                              rxn_entry_mat,
@@ -133,8 +135,5 @@ function plot_from_MCMC(posterior_sample, i)
   end
   return posterior_plot
 end
-
-[1:2:10]
-
 
 

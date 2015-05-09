@@ -1,15 +1,16 @@
+
 #File layout:
 #set up measurement error (two functions: one to sample and another to evaluate the density)
 #then load up the essentials
 #then set up the other inputs (e.g. the stoichiometry matrix)
 
-function log_measurement_density(x_current, noise_sd, molecule_index, d_obs)
-  log_density = logpdf(Normal(x_current[molecule_index], noise_sd), d_obs)
+function log_measurement_density(x_current, noise_distribution, molecule_index, d_obs)
+  log_density = logpdf(noise_distribution, x_current[molecule_index]-d_obs)
   return log_density
 end
 
-function do_measurement_error(x_current, noise_sd,molecule_index)
-  d_obs = x_current[molecule_index] + rand(Normal(0, noise_sd), 1)[1]
+function do_measurement_error(x_current, noise_distribution,molecule_index)
+  d_obs = x_current[molecule_index] + rand(noise_distribution, 1)[1]
   return d_obs
 end
 
@@ -38,12 +39,12 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
   true_init_x = [50]
   sto_mat = reshape([-1, 1],1,2)
   rxn_entry_mat = reshape([1, 0],1,2)
-  t_interval = 1 #300
-  num_intervals = 50 #24
+  t_interval = 300
+  num_intervals = 24
   T_sim = t_interval*num_intervals
   t_obs = t_interval*[1:num_intervals]
   molecule_index = 1
-  noise_sd = 1
+  noise_distribution = Normal(0, 10)
   inside_sampler = false
 
   bandwidth = 0.001
@@ -73,7 +74,7 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
         break
       end
     end
-    d_obs[j] = do_measurement_error(x_obs[j], noise_sd, molecule_index)
+    d_obs[j] = do_measurement_error(x_obs[j], noise_distribution, molecule_index)
   end
 
   #-----------------Inference-------------------------------
@@ -86,11 +87,10 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
     metadata_to_save = string("This test was run at time ", now(), " with ",
                             "observations at intervals of ", t_interval,
                             " from time zero to ", T_sim,
-                            " with a noise sd of ", noise_sd , ". ",
+                            " with a noise sd of ", std(noise_distribution), ". ",
                             " There were ",  num_samples_desired, " particles, ",
                             " with a log-uniform prior between 1 and 1e-4 and ",
-                            " true rates of ", true_rxn_rates[1], " and ", true_rxn_rates[2], "."
-                            )
+                            " true rates of ", true_rxn_rates[1], " and ", true_rxn_rates[2], ".")
 
     posterior_sample, num_acc = pMCMC(d_obs,
                              t_obs,
@@ -98,7 +98,7 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
                              num_samples_desired,
                              burnin_len,
                              thin_len,
-                             noise_sd,
+                             noise_distribution,
                              molecule_index,
                              sto_mat,
                              rxn_entry_mat,
@@ -159,4 +159,7 @@ bt, lidict = Profile.retrieve()
   #@load today_filepath
   #ProfileView.view(bt, lidict=lidict)
 
+x = Normal(0,1)
+mean(x)
+std(x)
 
