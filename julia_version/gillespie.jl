@@ -112,7 +112,6 @@ function gillespie(init_x,
 
     alpha = copy(rxn_rates)
 
-
     for rxn_index = 1:num_rxn_types
       for mol_index = 1:num_molecule_types
         alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], rxn_entry_mat[mol_index, rxn_index])
@@ -130,12 +129,10 @@ function gillespie(init_x,
       t_spent = t_spent + tau
     end
 
-
-
-
     #If time's not up, update the molecule counts, the reactions
     #count, and the reaction times and types list
-    if(t_spent <= T_sim)
+    if(t_spent < T_sim)
+      println("What the fuck!")
       current_rxn_type = rand(Categorical(alpha/alpha_sum))
       current_x = current_x + sto_mat[:,current_rxn_type]
 

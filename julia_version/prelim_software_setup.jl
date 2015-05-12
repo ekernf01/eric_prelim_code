@@ -13,7 +13,7 @@ using HDF5, JLD
 
 include("gillespie.jl")
 include("pMCMC.jl")
-
+include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/Transcribing_SBML/SBML_read.jl")
 
 #If you ever wonder whether doing
 #

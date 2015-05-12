@@ -1,3 +1,5 @@
+#The initial experiment laid out in this file features a single chemical that immigrates with
+#rate 0.1 and decays with rate 0.001. Experiments done on May 8th cast doubt on the correctness of the implementation.
 
 #File layout:
 #set up measurement error (two functions: one to sample and another to evaluate the density)

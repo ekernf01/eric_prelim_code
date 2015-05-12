@@ -10,7 +10,8 @@ function pMCMC_single_stage!(samples_post_prev_stage,
                              sto_mat,
                              rxn_entry_mat,
                              T_sim_this_stage, #needs to know how far to simulate
-                             bandwidth)
+                             bandwidth,
+                             do_kde)
 
   par_dim = size(samples_post_prev_stage.params)[1]
   state_dim = size(samples_post_prev_stage.state)[1]
@@ -33,18 +34,23 @@ function pMCMC_single_stage!(samples_post_prev_stage,
   prop_sample_params = Array(Float64, par_dim)
   prop_sample_state = Array(Int64, state_dim)
   range_num_part = [1:num_particles]
-  kde_kernel = Normal(0,bandwidth)
+  if do_kde
+    kde_kernel = Normal(0,bandwidth)
+  end
   for chainstep in 1:chain_len
     #param proposal from previous stage
     prop_particle_index = sample(range_num_part)
-    prop_sample_params = samples_post_prev_stage.params[:,particle_index]*exp(rand(kde_kernel))#do kde in log space
+    prop_sample_params = samples_post_prev_stage.params[:,particle_index]
+    if(do_kde)
+      prop_sample_params = prop_sample_params*exp(rand(kde_kernel))#do kde in log space
+    end
     prop_sample_state = samples_post_prev_stage.state[:,particle_index]
 
     #add perturbation as if sampling from a KDE
     prop_sample_params = prop_sample_params
 
     #state proposal from fwd simulation
-    inside_sampler =true
+    inside_sampler = true
     prop_sample_state = gillespie(prop_sample_state, sto_mat, rxn_entry_mat, prop_sample_params, T_sim_this_stage, inside_sampler)
 
     #accept if A > 1 or A > unif, i.e. log>0 or log>log(unif)
@@ -84,14 +90,15 @@ function pMCMC(d_obs, t_obs, prior_sample,
                              obs_molecule_index,
                              sto_mat,
                              rxn_entry_mat,
-                             bandwidth)
+                             bandwidth,
+                             do_kde)
 
   samples_post_current_stage = Sample_state_and_params_type(prior_sample.params, prior_sample.state)
   I = length(d_obs)
   num_acc = zeros(Int64, I)
   for stage = 1:I #by stage, I mean how much data has been conditioned upon. At stage 2, we've conditioned on 2 data points.
 
-    println(stage)
+    println(string("In pMCMC at stage ", stage, "."))
 
     #fold in more data
     if stage>1
@@ -112,12 +119,13 @@ function pMCMC(d_obs, t_obs, prior_sample,
                              sto_mat,
                              rxn_entry_mat,
                              T_sim_this_stage, #needs to know how far to simulate
-                             bandwidth)
+                             bandwidth,
+                             do_kde)
   end
   return samples_post_current_stage,num_acc
 end
 
-function plot_from_MCMC(posterior_sample, i)
+function plot_from_MCMC(posterior_sample)
   margin = abs(minimum(posterior_sample.params[2,:]))*0.1
   posterior_plot = FramedPlot(
             title="Bivariate output of MCMC sampler, rates 1 and 2",
