@@ -50,7 +50,8 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
   inside_sampler = false
 
   bandwidth = 0.001
-  num_samples_desired = 100000
+  do_kde = true
+  num_samples_desired = 1000
   burnin_len = 1e3
   thin_len = 5
 
@@ -104,7 +105,8 @@ function pMCMC_setup_experiment_1(;actually_run_MCMC=false)
                              molecule_index,
                              sto_mat,
                              rxn_entry_mat,
-                             bandwidth)
+                             bandwidth,
+                             do_kde)
     return posterior_sample, prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save
   end
   return true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x
@@ -114,11 +116,18 @@ include("prelim_software_setup.jl")
 #Set things up, bt don't pull the trigger on the pMCMC
 #true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x = pMCMC_setup_experiment_1(actually_run_MCMC=false)
 
+
+are_we_profiling = true
 tic()
 #Actually run the sampler; update metadata_to_save with time taken
   Profile.clear()
-  posterior_sample,prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save = @profile pMCMC_setup_experiment_1(actually_run_MCMC=true)
-  ProfileView.view()
+  if(are_we_profiling)
+    println("Not profiling.")
+    posterior_sample,prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save = @profile pMCMC_setup_experiment_1(actually_run_MCMC=true)
+    ProfileView.view()
+  else
+    posterior_sample,prior_sample, true_rxn_rates, t_obs, d_obs, x_obs, x_path, true_init_x, num_acc, metadata_to_save = pMCMC_setup_experiment_1(actually_run_MCMC=true)
+  end
   time_taken = toc()
   metadata_to_save = string(metadata_to_save, " It took ", time_taken, " seconds.")
 
@@ -135,9 +144,9 @@ x_obs_vals = Array(Int64,length(t_obs))
   add(sim_trajec_plot, Points(t_obs, d_obs, "color","red"))
 
 #plot prior and posterior
-post_plot = plot_from_MCMC(posterior_sample, 24)
+post_plot = plot_from_MCMC(posterior_sample)
   add(post_plot, Points(true_rxn_rates[1],true_rxn_rates[2], "color", "red"))
-pri_plot = plot_from_MCMC(prior_sample, 0)
+pri_plot = plot_from_MCMC(prior_sample)
 
 #Make a new folder named by experiment and date. Save profiler data, plots of prior and posterior, and
 

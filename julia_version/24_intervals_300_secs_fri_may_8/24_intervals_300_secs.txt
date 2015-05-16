@@ -1,5 +1,0 @@
-The posteriors for the quick tests were terrible: tight and in the wrong places. The simulated runs had high variance, with not much info about the params in the simulation. So, 50_intervals_30_secs was meant to see what happens when more info is available, but that was terrible too. So, I tried it with only 24 intervals, but 300 seconds per: these are the settings in the paper. 
-
-Round one took only 50 seconds, one third the time. The posterior was still terrible.
-
-Round two used 1,000,000 particles instead of 100,000. It took 1175 seconds (~20 minutes).  The posterior was still completely wrong, and the magnitude-switching described in the folder quick tests friday may 8 persists. 

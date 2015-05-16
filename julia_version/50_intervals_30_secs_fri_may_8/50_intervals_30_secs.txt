@@ -1,3 +1,0 @@
-The posteriors for the quick tests were terrible: tight and in the wrong places. The simulated runs had high variance, with not much info about the params in the simulation. So, 50_intervals_30_secs is meant to see what happens when more info is available.
-
-Round one took 150 seconds. The posterior was still terrible. 

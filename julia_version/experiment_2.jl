@@ -11,7 +11,7 @@
 #then set up the other inputs (e.g. the stoichiometry matrix)
 
 function log_measurement_density(x_current, noise_distribution, molecule_index, d_obs)
-  log_density = logpdf(noise_distribution, x_current[molecule_index]-d_obs)
+  log_density = logpdf(noise_distribution, d_obs-x_current[molecule_index])
   return log_density
 end
 
@@ -128,6 +128,7 @@ tic()
   ProfileView.view()
   time_taken = toc()
   metadata_to_save = string(metadata_to_save, " It took ", time_taken, " seconds.")
+  num_acc
 
 #make a plot of the simulated trajectory
 x_obs_vals = Array(Int64,length(t_obs))

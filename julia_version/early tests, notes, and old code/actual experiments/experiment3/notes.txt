@@ -1,0 +1,5 @@
+Experiment3 and the associated Julia file are designed to reproduce Wilkinson’s first experiment, where SigD is observed as part of a 13-chemical, 18-reaction system. I scaled up the experiments gradually; to do 10,000 particles, it took 62 seconds. 
+
+Actually, this does not yet reproduce his experiment exactly. The figure-making code hasn’t been updated, and the facilities have not been built to leave some parameters at their true values.
+
+An overnight test with 1000000 particles took 5900 seconds.
