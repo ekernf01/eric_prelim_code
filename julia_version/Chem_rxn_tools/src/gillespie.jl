@@ -35,8 +35,6 @@
 # x_path, a list of vectors with first element init_x and ith element showing the molecule counts between rxn_time[i-1] and rxn_time[i].
 
 function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
-  #init_x = vec(cri.init_amts)
-  #rxn_rates = vec(cri.rxn_rates)
 
   current_x = cri.init_amts
   num_rxns_occ = 0
@@ -57,7 +55,6 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
     #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
 
     alpha = copy(cri.rxn_rates)
-
     for rxn_index = 1:cri.num_rxns
       for mol_index = 1:cri.num_species
         alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], cri.rxn_entry_mat[mol_index, rxn_index])
@@ -92,7 +89,6 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
     end
   end
   if(inside_sampler)
-    current_x::Array{Int64,1}
     return current_x
   else
     return Chem_sim_result(x_path, current_x, num_rxns_occ, rxn_types,rxn_times, t_spent)

@@ -1,9 +1,12 @@
-module chem_rxn_tools
-#Module containing tools for:
+module Chem_rxn_tools
+# Module containing tools for:
 # --storing info about chemical reactions
 # --simulating chemical reactions via a markov jump process (implementation of the gillespie algorithm)
 # --reading chemical reaction systems from SBML shorthand (SBML is "systems biology markup language")
-
+# Example code:
+# SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/chem_rxn_tools/wilkinson_rxns_SBML_shorthand.txt"
+# using Chem_rxn_tools
+# wilk_cri = SBML_read(SBML_file)
 
   #-------------------------------------Data structures-------------------------------------
   type Chem_rxn_info
@@ -23,7 +26,7 @@ module chem_rxn_tools
     #Data internal to the SMBL representation but otherwise extraneous for this module
     rxn_pos_in_SBML_file::Array{Int64,1}
     SBML_par_names::Array{String, 1}
-    par_vals::Array{Int64, 1}
+    SBML_par_vals::Array{Float64, 1}
   end
 
   #constructor to make an empty chem_rxn_info
@@ -56,6 +59,7 @@ module chem_rxn_tools
 
 
   using Distributions
+  using Winston
 
   #-------------------------------------functions-------------------------------------
   include("chem_rxn_data_check.jl")
@@ -64,8 +68,10 @@ module chem_rxn_tools
   include("get_species_info.jl")
   include("get_rxn_info.jl")
   include("get_stoich_info.jl")
+  include("get_rate_info.jl")
   include("SBML_read.jl")
   include("gillespie.jl")
   include("gillespie_tester.jl")
+  include("make_cri_graphic.jl")
 end
 
