@@ -26,6 +26,7 @@
 
 
 module pMCMC_julia
+using Distributions
 #---------------------------------Sample_state_and_params_type--------------------------------------------
 #Holds a big array of samples on parameters and hidden states
 #Methods to construct, copy, and check desired invariants
@@ -37,7 +38,7 @@ immutable Sample_state_and_params_type
   num_particles::Int64
 
   function Sample_state_and_params_type(params::Array{Float64, 2}, state::Array{Int64, 2})
-    new_object = Sample_state_and_params_type(params,
+    new_object = new(params,
                                    state,
                                    size(params)[1], #par_dim
                                    size(state)[1],  #state_dim
@@ -48,7 +49,7 @@ immutable Sample_state_and_params_type
   end
 
   function Sample_state_and_params_type(num_particles::Int64, par_dim::Int64, state_dim::Int64)
-    new_object = Sample_state_and_params_type(zeros(Float64, par_dim, num_particles),
+    new_object = new(zeros(Float64, par_dim, num_particles),
                                    zeros(Int64, state_dim, num_particles),
                                    par_dim,
                                    state_dim,
@@ -57,11 +58,11 @@ immutable Sample_state_and_params_type
     return new_object
   end
 end
-    function Sample_state_and_params_type_data_check(Sample_state_and_params_type)
-      mismatch1 = (par_dim != size(samples_post_prev_stage.params)[1])
-      mismatch2 = (state_dim != size(samples_post_prev_stage.state)[1])
-      mismatch3 = (num_particles != size(samples_post_prev_stage.params)[2])
-      mismatch4 = (num_particles != size(samples_post_prev_stage.state)[2])
+    function Sample_state_and_params_type_data_check(ssp::Sample_state_and_params_type)
+      mismatch1 = (ssp.par_dim != size(ssp.params)[1])
+      mismatch2 = (ssp.state_dim != size(ssp.state)[1])
+      mismatch3 = (ssp.num_particles != size(ssp.params)[2])
+      mismatch4 = (ssp.num_particles != size(ssp.state)[2])
       if(mismatch1 | mismatch2 | mismatch3 | mismatch4)
         error("dimension data don't match in a Sample_state_and_params_type object.")
       end
@@ -80,26 +81,28 @@ end
 #Holds samples and preferences for the pMCMC algo
 #Method to construct, check invariants, and run a single stage of the sampler
 type MCMC_state
-  num_samples_desired::Int64
   burnin_len::Int64
   thin_len::Int64
   bandwidth::Float64
   do_kde::Bool
   num_acc::Array{Int64, 1}
   stage::Int64
+  fwd_sim::Function
+  emission_logden::Function
   current_sample::Sample_state_and_params_type
 end
     MCMC_state() = MCMC_state(
-      1000,    #num_samples_desired
       1000,    #burnin_len
       5,       #thin_len
       0.001,   #bandwidth
       false,   #do_kde
       Int64[], #num_acc
       0,       #stage
+      (x -> x), #fwd_sim
+      (x -> 0), #emission_logden
       Sample_state_and_params_type(0, 0, 0)
       )
-    end
+
 
     function MCMC_state_data_check(current_sampler_state::MCMC_state)
       if length(current_sampler_state.num_acc!=stage)
@@ -111,17 +114,15 @@ end
 #This function loops over the dataset. At iteration i, it calls an MCMC-based
 #subroutine to convert a large sample from P(params|data to time i-1) into
 #a large sample from P(params|data to time i)
-function pMCMC(d_obs, t_obs,
-               current_MCMC_state::MCMC_state,
-               emission_logden::Function,
-               fwd_sim::Function)
-
-  samples_post_current_stage = copy_sample(current_MCMC_state.current_sample)
+function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
+  println("WARNING: pMCMC! modifies the MCMC_state objects that it is given.")
   I = length(d_obs)
-
   for stage = 1:I #by stage, I mean how much data has been conditioned upon. At stage 2, we've conditioned on 2 data points.
+    #report progress
     println(string("In pMCMC at stage ", stage, "."))
-    Sample_state_and_params_type_data_check(current_MCMC_state.current_sample::Sample_state_and_params_type)
+    #check data to see if pMCMC_single_stage! introduced any errors
+    Sample_state_and_params_type_data_check(MCS.current_sample)
+
     #fold in more data
     if stage>1
       T_sim_this_stage = t_obs[stage] - t_obs[stage]
@@ -130,61 +131,53 @@ function pMCMC(d_obs, t_obs,
     end
     d_obs_this_stage = d_obs[stage]
 
-    #re-run the sampler
-    pMCMC_single_stage!(current_MCMC_state::MCMC_state,
-                        emission_logden::Function,
-                        fwd_sim::Function)
+    #Run the sampler
+    pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS)
   end
-  return current_MCMC_state
+  return MCS
 end
 
 #This subroutine converts a large sample from P(params, state at time i-1|data to time i-1) into
 #a large sample from P(params, state at time i|data to time i)
-function pMCMC_single_stage!(current_MCMC_state::MCMC_state,
-                              emission_logden::Function,
-                              fwd_sim::Function)
-
+function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state)
   #new empty array
-  samples_post_current_stage = Sample_state_and_params_type(num_samples_desired,par_dim, state_dim)
+  samples_for_next_stage = Sample_state_and_params_type(MCS.current_sample.num_particles,MCS.current_sample.par_dim, MCS.current_sample.state_dim)
 
-  #Loop setup
-  #this is an independence proposal, so I could draw all the proposals and unifs
-  #beforehand, but I think it's actually faster in Julia to do it in a loop.
-  #initial sample to default to when rejecting
+  #------------------------------Loop setup------------------------------
 
-  prop_particle_index = sample([1:current_MCMC_state.current_sample.num_particles])
-  prev_sample_params = current_MCMC_state.current_sample.params[:,prop_particle_index]
-  prev_sample_state = current_MCMC_state.current_sample.state[:,prop_particle_index]
-  chain_len = current_MCMC_state.burnin_len + current_MCMC_state.thin_len*current_MCMC_state.num_samples_desired
-  record_index = 0
-  num_acc = 0
+  #Initial values
+  prop_particle_index = sample([1:MCS.current_sample.num_particles])
+  prev_sample_params = MCS.current_sample.params[:,prop_particle_index]
+  prev_sample_state = MCS.current_sample.state[:,prop_particle_index]
+  #empty arrays for proposals
+  prop_sample_params = Array(Float64, MCS.current_sample.par_dim)
+  prop_sample_state = Array(Int64, MCS.current_sample.state_dim)
 
-  prop_sample_params = Array(Float64, par_dim)
-  prop_sample_state = Array(Int64, state_dim)
-  range_num_part = [1:num_particles]
-  if do_kde
-    kde_kernel = Normal(0,bandwidth)
+  chain_len = MCS.burnin_len + MCS.thin_len*MCS.current_sample.num_particles #says how many iterations we'll do
+  record_index = 0 #Says how many samples we've saved.
+  num_acc = 0 #Says how many proposals we've accepted.
+  range_num_part = [1:MCS.current_sample.num_particles] #Helps with fast resampling if I allocate this outside the loop.
+  if MCS.do_kde
+    MCS.kde_kernel = Normal(0,MCS.bandwidth)
   end
+
+  #------------------------------Loop------------------------------
   for chainstep in 1:chain_len
     #param proposal from previous stage
     prop_particle_index = sample(range_num_part)
-    prop_sample_params = samples_post_prev_stage.params[:,prop_particle_index]
-    if(do_kde)
-      prop_sample_params = prop_sample_params.*exp(rand(kde_kernel, par_dim))#do kde in log space
+    prop_sample_params = MCS.current_sample.params[:,prop_particle_index]
+    prop_sample_state = MCS.current_sample.state[:,prop_particle_index]
+    if(MCS.do_kde)
+      prop_sample_params = prop_sample_params.*exp(rand(MCS.kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
     end
-    prop_sample_state = samples_post_prev_stage.state[:,prop_particle_index]
 
-    #add perturbation as if sampling from a KDE
-    prop_sample_params = prop_sample_params
-
-    #state proposal from fwd simulation
-    inside_sampler = true
-    prop_sample_state =
+    #This LF-MCMC requires you to generate the proposal for the hidden state by simulating, conditioned on the proposed parameters.
+    prop_sample_state = MCS.fwd_sim(prop_sample_state, prop_sample_params, T_sim_this_stage)
 
     #accept if A > 1 or A > unif, i.e. log>0 or log>log(unif)
     log_acc_rat =
-      log_measurement_density(prop_sample_state, noise_distribution, obs_molecule_index, d_obs_this_stage) -
-      log_measurement_density(prev_sample_state, noise_distribution, obs_molecule_index, d_obs_this_stage)
+      MCS.emission_logden(prop_sample_state, d_obs_this_stage) -
+      MCS.emission_logden(prev_sample_state, d_obs_this_stage)
     if (log_acc_rat > 0) || (log_acc_rat > log(rand(1)[1]))
       acc_sample_state = prop_sample_state
       acc_sample_params = prop_sample_params
@@ -195,45 +188,55 @@ function pMCMC_single_stage!(current_MCMC_state::MCMC_state,
     end
 
     #record after burnin unless thinned out
-    if ((chainstep>burnin_len) && (chainstep%thin_len==1))
+    if ((chainstep>MCS.burnin_len) && (chainstep%MCS.thin_len==1))
       record_index = record_index + 1
-      samples_post_current_stage.params[:,record_index] = acc_sample_params
-      samples_post_current_stage.state[:,record_index] = acc_sample_state
+      samples_for_next_stage.params[:,record_index] = acc_sample_params
+      samples_for_next_stage.state[:,record_index] = acc_sample_state
     end
+
+    #Make sure the next round compares to the right items
     prev_sample_state = acc_sample_state
     prev_sample_params = acc_sample_params
   end
 
-  push!(current_MCMC_state.num_acc, num_acc)
-  current_MCMC_state.stage = current_MCMC_state.stage + 1
-  return current_MCMC_state
+  #In place of return statement, this function modifies its args.
+  push!(MCS.num_acc, num_acc)
+  MCS.stage = MCS.stage + 1
+  MCS.current_sample = samples_for_next_stage
 end
 
-function plot_from_MCMC(current_MCMC_state, ground_truth=[])
-  num_particles = current_MCMC_state.current_sample.num_particles
-  par_dim = current_MCMC_state.current_sample.par_dim
-  state_dim = current_MCMC_state.current_sample.state_dim
+using Winston
+function plot_from_MCMC(MCS, ground_truth_params=[], ground_truth_state=[])
+  num_particles = MCS.current_sample.num_particles
+  par_dim = MCS.current_sample.par_dim
+  state_dim = MCS.current_sample.state_dim
 
   skip_len = ceil(Int64, num_particles/1000)
   plot_from_indices = 1:skip_len:num_particles
 
-  posterior_plots = table(1,par_dim+state_dim)
-  for i in 1:(par_dim + state_dim)
-    if i > par_dim
-      to_plot = current_MCMC_state.current_sample.state[i,plot_from_indices]
-    else
-      to_plot = current_MCMC_state.current_sample.params[i,plot_from_indices]
-    end
-    posterior_plots[1,i] = FramedPlot(title=string("Marginal", i, "of MCMC output"))
+  posterior_plots = Table(1,par_dim+state_dim)
+  for i in 1:par_dim
+    to_plot = MCS.current_sample.params[i,plot_from_indices]
+    posterior_plots[1,i] = FramedPlot(title=string("Marginal", i, "of MCMC output (pars)"))
     add(posterior_plots[1,i], Histogram(hist(vec(to_plot))...))
-    if !isempty(ground_truth)
+    if !isempty(ground_truth_params)
       #Add a line of the right height
       line_height = maximum(hist(vec(to_plot))[2])
-      add(posterior_plots[1,i], Curve([ground_truth[i],ground_truth[i]], [line_height,0], "color", "red"))
+      add(posterior_plots[1,i], Curve([ground_truth_params[i],ground_truth_params[i]], [line_height,0], "color", "red"))
     end
   end
-
+  for i in 1:state_dim
+    to_plot = MCS.current_sample.state[i,plot_from_indices]
+    posterior_plots[1,i+par_dim] = FramedPlot(title=string("Marginal", i, "of MCMC output (state)"))
+    add(posterior_plots[1,i+par_dim], Histogram(hist(vec(to_plot))...))
+    if !isempty(ground_truth_state)
+      #Add a line of the right height
+      line_height = maximum(hist(vec(to_plot))[2])
+      add(posterior_plots[1,i + par_dim], Curve([ground_truth_state[i],ground_truth_state[i]], [line_height,0], "color", "red"))
+    end
+  end
   return posterior_plots
 end
 
-println("----------------------------------")
+end
+

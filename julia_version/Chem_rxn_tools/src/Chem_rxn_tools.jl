@@ -1,4 +1,5 @@
 module Chem_rxn_tools
+println("Apologies: Chem_rxn_tools takes a little while to load.")
 # Module containing tools for:
 # --storing info about chemical reactions
 # --simulating chemical reactions via a markov jump process (implementation of the gillespie algorithm)
@@ -64,6 +65,7 @@ module Chem_rxn_tools
   #-------------------------------------functions-------------------------------------
   include("chem_rxn_data_check.jl")
   include("get_chem_indices.jl")
+  include("get_rate_indices.jl")
   include("get_par_info.jl")
   include("get_species_info.jl")
   include("get_rxn_info.jl")

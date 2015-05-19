@@ -1,4 +1,4 @@
-function get_rate_info!(lines,cri)
+ function get_rate_info!(lines,cri)
   num_params_at_start = length(cri.SBML_par_names)
   cri.rxn_rates = zeros(Float64,cri.num_rxns)
   for j in 1:length(cri.rxn_pos_in_SBML_file)
