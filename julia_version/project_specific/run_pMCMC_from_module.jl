@@ -3,9 +3,7 @@ workspace()
 push!(LOAD_PATH, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/")
 
 #-----------------------------Load in info from SBML shorthand and visualize results.------------------------------
-println("Need to eventually remove LastMain magic at 6")
-  using LastMain.Chem_rxn_tools
-  println("Need to eventually remove LastMain magic at 6")
+  using Chem_rxn_tools
   SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/wilkinson_rxns_SBML_shorthand.txt"
   wilk_cri = Chem_rxn_tools.SBML_read(SBML_file)
   sto_mat_graph,rxn_entry_mat_graph = Chem_rxn_tools.make_cri_graphic(wilk_cri)
@@ -17,9 +15,7 @@ println("Need to eventually remove LastMain magic at 6")
 #You can, purposefully or otherwise, run this code while simulating data from one model and doing inference on another.
 #However, changing this line in this script as written May 17, 2015 will change both the simulated data and the inference method.
 #The variable noise_distribution goes into both.
-println("Need to eventually remove LastMain magic at 19")
-  using LastMain.Distributions
-  println("Need to eventually remove LastMain magic at 19")
+  using Distributions
   noise_distribution = Normal(0, 10)
 
 #In Wilkinson's first experiment, the molecule of interest, SigD, is observed.
@@ -111,8 +107,7 @@ x_index_matching_t_obs = Array(Int64, length(t_obs))
   end
 
 #-----------------------------plot the simulated trajectory-------------------------------
-  println("Need to eventually remove LastMain magic at 98")
-  using LastMain.Winston
+  using Winston
   x_obs_vals = Array(Int64,length(t_obs))
   for i in 1:length(x_obs)
     x_obs_vals[i] = x_obs[i]
@@ -139,15 +134,16 @@ using ProfileView
   time_taken = toc()
   metadata_to_save = string(metadata_to_save, " It took ", time_taken, " seconds.")
 
-#plot the posterior
-post_hists = pMCMC_julia.plot_from_MCMC(MCS, unk_rates, sim_results.x_path[end])
-  savefig(post_hists, string(today_filepath, "/post.png"))
+today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy/debug_", now())
+mkdir(today_filepath)
 
+#plot the posterior
+post_hists = pMCMC_julia.plot_from_MCMC_and_save(MCS, today_filepath, unk_rates, sim_results.x_path[end])
 
 #-----------------------------save the results------------------------------
 using HDF5, JLD
 #To save important metadata
-  today_filepath = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy"
-  @save string(today_filepath, "/metadata") metadata_to_save wilk_cri
-  @save string(today_filepath, "/samples_and_data") MCS.current_sample sim_results x_obs d_obs t_obs
+  save(string(today_filepath, "/metadata"), "metadata_to_save", metadata_to_save, "wilk_cri", wilk_cri)
+  save(string(today_filepath, "/samples_and_data"), "posterior_sample", MCS.current_sample, "sim_results", sim_results, "x_obs", x_obs, "d_obs", d_obs, "t_obs", t_obs)
+
 
