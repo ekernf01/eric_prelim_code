@@ -91,7 +91,21 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
   if(inside_sampler)
     return current_x
   else
-    return Chem_sim_result(x_path, current_x, num_rxns_occ, rxn_types,rxn_times, t_spent)
+    x_obs = Array{Int64, 1}[]
+    d_obs = Float64[]
+    t_obs = Float64[]
+    obs_mol_name = ""
+    obs_mol_ind = -1
+    return Chem_sim_result(x_path,
+                           current_x,
+                           num_rxns_occ,
+                           rxn_types,
+                           rxn_times,
+                           t_spent,
+                           x_obs,
+                           d_obs,
+                           t_obs,
+                           obs_mol_name,
+                           obs_mol_ind)
   end
 end
-

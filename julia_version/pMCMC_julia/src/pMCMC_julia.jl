@@ -158,7 +158,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
   num_acc = 0 #Says how many proposals we've accepted.
   range_num_part = [1:MCS.current_sample.num_particles] #Helps with fast resampling if I allocate this outside the loop.
   if MCS.do_kde
-    MCS.kde_kernel = Normal(0,MCS.bandwidth)
+    kde_kernel = Normal(0,MCS.bandwidth)
   end
 
   #------------------------------Loop------------------------------
@@ -168,7 +168,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
     prop_sample_params = MCS.current_sample.params[:,prop_particle_index]
     prop_sample_state = MCS.current_sample.state[:,prop_particle_index]
     if(MCS.do_kde)
-      prop_sample_params = prop_sample_params.*exp(rand(MCS.kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
+      prop_sample_params = prop_sample_params.*exp(rand(kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
     end
 
     #This LF-MCMC requires you to generate the proposal for the hidden state by simulating, conditioned on the proposed parameters.
@@ -206,7 +206,8 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
 end
 
 using Winston
-function plot_from_MCMC_and_save(MCS::pMCMC_julia.MCMC_state, save_folder::String, ground_truth_params=[], ground_truth_state=[])
+
+function plot_save_marginals(MCS::pMCMC_julia.MCMC_state, save_folder::String, ground_truth_params=[], ground_truth_state=[])
   num_particles = MCS.current_sample.num_particles
   par_dim = MCS.current_sample.par_dim
   state_dim = MCS.current_sample.state_dim
@@ -216,12 +217,12 @@ function plot_from_MCMC_and_save(MCS::pMCMC_julia.MCMC_state, save_folder::Strin
 
   for i in 1:par_dim
     to_plot = MCS.current_sample.params[i,plot_from_indices]
-    posterior_plot = plot(Int64[], Int64[], title=string("Marginal", i, "of MCMC output (pars)"))
-    add(posterior_plot, Histogram(hist(vec(to_plot))...))
+    posterior_plot = plot(Int64[], Int64[], title=string("Marginal", i, "of MCMC output (pars, log scale)"))
+    add(posterior_plot, Histogram(hist(vec(log10(to_plot)))...))
     if !isempty(ground_truth_params)
       #Add a line of the right height
-      line_height = maximum(hist(vec(to_plot))[2])
-      add(posterior_plot, Curve([ground_truth_params[i],ground_truth_params[i]], [line_height,0], "color", "red"))
+      line_height = maximum(hist(vec(log10(to_plot)))[2])
+      add(posterior_plot, Curve([log10(ground_truth_params[i]),log10(ground_truth_params[i])], [line_height,0], "color", "red"))
     end
     savefig(string(save_folder, "/post_par_", i, ".png"))
   end
@@ -239,4 +240,3 @@ function plot_from_MCMC_and_save(MCS::pMCMC_julia.MCMC_state, save_folder::Strin
 end
 
 end
-

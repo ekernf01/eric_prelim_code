@@ -48,13 +48,18 @@ println("Apologies: Chem_rxn_tools takes a little while to load.")
     Int64[]                              #rxn_labels
     )
 
-  immutable Chem_sim_result
+  type Chem_sim_result
     x_path::Array{Array{Int64, 1}, 1}
     current_x::Array{Int64, 1}
     num_rxns_occ::Int64
     rxn_types::Array{Int64, 1}
     rxn_times::Array{Float64, 1}
     t_spent::Float64
+    x_obs::Array{Array{Int64, 1}, 1} #Noiseless verion of all values at observation times.
+    d_obs::Array{Float64, 1} #Noisy verion of observed coordinate at observation times.
+    t_obs::Array{Float64, 1} #observation times.
+    obs_mol_name::String
+    obs_mol_ind::Int64
   end
 
 
@@ -75,5 +80,6 @@ println("Apologies: Chem_rxn_tools takes a little while to load.")
   include("gillespie.jl")
   include("gillespie_tester.jl")
   include("make_cri_graphic.jl")
+  include("make_sim_data.jl")
+  include("plot_save_sim_data.jl")
 end
-
