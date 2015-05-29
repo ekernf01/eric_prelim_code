@@ -12,7 +12,7 @@ function make_sim_data(t_obs, true_cri, obs_mol_name, noise_distribution)
   sim_results.d_obs = zeros(Float64,length(t_obs)) #Observed values
   for j in 1:length(t_obs)
     #Assume at first that t_obs[j] is after all rxns have happened.
-    push!(sim_results.x_obs, sim_results.x_path[sim_results.num_rxns_occ])
+    push!(sim_results.x_obs, sim_results.x_path[maximum([sim_results.num_rxns_occ, 1])])
     #Test other possible windows between reaction times. If
     #one of them works out, exit the loop knowing that t_obs[j] includes only first i-1 rxns
     for i in 2:sim_results.num_rxns_occ

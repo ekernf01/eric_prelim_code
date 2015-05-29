@@ -1,7 +1,7 @@
 #This allows Julia to find Eric's modules.
 workspace()
 push!(LOAD_PATH, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/")
-num_samples_desired = 100_000
+num_samples_desired = 1_000_000
 
 #-----------------------------Load in info from SBML shorthand and visualize results.------------------------------
   using Chem_rxn_tools
@@ -48,7 +48,7 @@ using pMCMC_julia
   MCS.do_kde = true
   MCS.burnin_len = 1e3
   MCS.thin_len = 5
-#log uniform prior on 1*10^-4 to 1*10^0 for the 3 unknowns:
+#log uniform priors for the 3 unknowns:
   #log(kSigDprod) ∼ Unif(log{0.01}, log{100}),
   #log(kflacherep) ∼ Unif(log{0.0002}, log{2}),
   #log(kflacheunrep) ∼ Unif(log{0.001}, log{10}).
@@ -86,7 +86,7 @@ using Dates
                             " from time zero to ", T_sim,
                             " with a noise sd of ", std(noise_distribution), ". ",
                             " There were ",   MCS.current_sample.num_particles, " particles, ",
-                            " with a log-uniform prior between 1 and 1e-4 and ",
+                            " with wilkinson's log-uniform priors for the three unknowns and ",
                             " true rates of ", wilk_cri.rxn_rates, ". \n ",
                             "The observed molecule was ", obs_mol_name, " at index ", Chem_rxn_tools.get_chem_indices(wilk_cri, obs_mol_name), ". \n")
 

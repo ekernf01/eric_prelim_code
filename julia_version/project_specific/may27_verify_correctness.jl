@@ -1,29 +1,29 @@
 #This allows Julia to find Eric's modules.
 workspace()
 push!(LOAD_PATH, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/")
-num_samples_desired = 1_000
+num_samples_desired = 100_000
 
 #-----------------------------Load in info from SBML shorthand and visualize results.------------------------------
 using Chem_rxn_tools
-  demo_cri = Chem_rxn_info(
-    "kryptonite",                        #species_labels
-    50,                                  #init_amts
+  demo_cri = Chem_rxn_tools.Chem_rxn_info(
+    ["kryptonite"],                        #species_labels
+    [250],                                  #init_amts
     1,                                   #num_species
 
-    zeros(Int64, 1, 1),                  #sto_mat
-    zeros(Int64, 1, 1),                  #rxn_entry_mat
-    "Dummy_rxn",                         #rxn_labels
+    -ones(Int64, 1, 1),                  #sto_mat
+    ones(Int64, 1, 1),                  #rxn_entry_mat
+    ["kryptonite_decay"],                         #rxn_labels
     1,                                   #num_rxns
-    zeros(Float64,1),                    #rxn_rates
-    "kryptonite->kryptonite",            #rxns_written_out
+    [0.00000001],                    #rxn_rates
+    [],            #rxns_written_out
 
     [0],                                 #rxn_pos_in_SBML_file
-    ["kryptonite_persistence"],          #SBML_par_names
+    [],          #SBML_par_names
     [1]                                  #rxn_labels
     )
-
   unk_inds = [1]
-  unk_names = ["kryptonite_persistence"]
+  unk_rates = demo_cri.rxn_rates[[1]]
+  unk_names = ["kryptonite_decay"]
   obs_mol_name = "kryptonite"
 
   t_interval = 300.0
@@ -39,9 +39,9 @@ using pMCMC_julia
   MCS.burnin_len = 1e3
   MCS.thin_len = 5
 
-  prior_sample_thetas = zeros(1,num_samples_desired)
-  prior_sample = Sample_state_and_params_type(prior_sample_thetas, reshape(sample(1:500, num_samples_desired),1,num_samples_desired))
-  MCS.current_sample = pMCMC_julia.Sample_state_and_params_type(param_sample, state_sample)
+  prior_sample_thetas = 0.00000001*ones(1,num_samples_desired)
+  using Distributions
+  MCS.current_sample = pMCMC_julia.Sample_state_and_params_type(prior_sample_thetas, reshape(sample(1:500, num_samples_desired),1,num_samples_desired))
 
   obs_mol_ind = Chem_rxn_tools.get_chem_indices(demo_cri, obs_mol_name)
 
@@ -70,9 +70,9 @@ using Dates
                             " from time zero to ", T_sim,
                             " with a noise sd of ", std(noise_distribution), ". ",
                             " There were ",   MCS.current_sample.num_particles, " particles, ",
-                        " with a clairvoyant spike-at-zero prior on reaction rate, ",
+                        " with a log-unif prior around the true reaction rate, ",
                         " a discrete unif(0,500) prior on the state, ",
-                        " and true state of ", true_init_x, ".")
+                        " and initial true state of ", demo_cri.init_amts, ".")
 
 today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy/may27_verify", now())
   mkdir(today_filepath)
@@ -104,7 +104,7 @@ post_hists = pMCMC_julia.plot_save_marginals(MCS, today_filepath, unk_rates, sim
 #-----------------------------save the results------------------------------
 using HDF5, JLD
 #To save important metadata
-  save(string(today_filepath, "/metadata"), "metadata_to_save", metadata_to_save, "wilk_cri", wilk_cri)
+  save(string(today_filepath, "/metadata"), "metadata_to_save", metadata_to_save, "demo_cri", demo_cri)
   save(string(today_filepath, "/samples_and_data"), "num_acc", MCS.num_acc, "posterior_sample", MCS.current_sample, "sim_results", sim_results)
 
 
