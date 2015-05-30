@@ -118,26 +118,18 @@ using ProfileView
 
 #-----------------------------save the results------------------------------
 using HDF5, JLD
-  save(string(today_filepath, "/metadata"),
-       "metadata_to_save", metadata_to_save,
-       "wilk_cri", wilk_cri,
-       "unk_rates", unk_rates,
-       "unk_names", unk_names,
-       )
-  save(string(today_filepath, "/samples_and_data"),
-       "num_acc", MCS.num_acc,
-       "posterior_sample", MCS.current_sample,
-       "sim_results", sim_results
-       )
+  @save string(today_filepath, "/samples_and_metadata")
 
   println(metadata_to_save)
   println(string("By round, the acceptance rate was ", MCS.num_acc/(MCS.burnin_len + MCS.thin_len*num_samples_desired)))
 
 #-----------------------------plot the posterior-------------------------------
 
-  load(string(today_filepath, "/samples_and_data"))
-  load(string(today_filepath, "/metadata"))
+  @load string(today_filepath, "/samples_and_metadata")
+
   post_hists = pMCMC_julia.plot_save_marginals(MCS, today_filepath, unk_rates, sim_results.x_path[end])
   include("contour_bivariate_plot_maker.jl")
-  post_biv = contour_plot_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
+  post_contour = contour_plot_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
+  include("bivariate_plot_maker.jl")
+  post_biv = plot_save_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
 

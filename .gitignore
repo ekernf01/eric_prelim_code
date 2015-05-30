@@ -1,2 +1,3 @@
 # ignore data: the posterior samples are too big to sync to the website.
 **/samples_and_data
+**/samples_and_metadata
