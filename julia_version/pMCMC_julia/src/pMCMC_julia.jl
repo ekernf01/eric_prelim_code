@@ -131,7 +131,7 @@ function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
     Sample_state_and_params_type_data_check(MCS.current_sample)
 
     #save samples
-    save(string(MCS.save_path, "/stage",MCS.stage, "samples_and_data"), "current_sample", MCS.current_sample)
+    save(string(MCS.save_path, "/stage",MCS.stage, "sample"), "current_sample", MCS.current_sample)
 
     #fold in more data
     if stage>1

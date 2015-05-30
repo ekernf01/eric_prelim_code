@@ -3,3 +3,5 @@ This series of tests is designed to see whether using a fairly large bandwidth d
 Round 4 helped debug a new feature: saving samples at every stage.
 Round 5 helped debug another new feature: contour plots.
 Round 6 helped debug another new feature: switch to @save and @load.
+
+Finally, with some assurance that data would be saved and plotted properly, Round 7 used 1_000_000 particles with a bandwidth of 0.5 (normal kernel).

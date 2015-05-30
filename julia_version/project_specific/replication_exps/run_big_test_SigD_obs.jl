@@ -1,7 +1,7 @@
 #This allows Julia to find Eric's modules.
 workspace()
 push!(LOAD_PATH, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/")
-num_samples_desired = 1_000
+num_samples_desired = 1_000_000
 
 #-----------------------------Load in info from SBML shorthand and visualize results.------------------------------
   using Chem_rxn_tools
@@ -81,7 +81,7 @@ using pMCMC_julia
 
 #-----------------------------setup what and where to save-------------------------------
 using Dates
-  today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy/SigD_obs_", now())
+  today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/replication_exps/SigD_obs_", now())
   mkdir(today_filepath)
   MCS.save_path = today_filepath
   metadata_to_save = string("This test was run at time ", now(), " with ",
@@ -128,8 +128,8 @@ using HDF5, JLD
   @load string(today_filepath, "/samples_and_metadata")
 
   post_hists = pMCMC_julia.plot_save_marginals(MCS, today_filepath, unk_rates, sim_results.x_path[end])
-  include("contour_bivariate_plot_maker.jl")
+  include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/contour_bivariate_plot_maker.jl")
   post_contour = contour_plot_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
-  include("bivariate_plot_maker.jl")
+  include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/bivariate_plot_maker.jl")
   post_biv = plot_save_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
 
