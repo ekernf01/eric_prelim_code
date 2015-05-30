@@ -27,6 +27,8 @@
 
 module pMCMC_julia
 using Distributions
+using HDF5, JLD
+
 #---------------------------------Sample_state_and_params_type--------------------------------------------
 #Holds a big array of samples on parameters and hidden states
 #Methods to construct, copy, and check desired invariants
@@ -90,7 +92,10 @@ type MCMC_state
   fwd_sim::Function
   emission_logden::Function
   current_sample::Sample_state_and_params_type
+  save_path::String
 end
+
+    default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiment_default_save_spot"
     MCMC_state() = MCMC_state(
       1000,    #burnin_len
       5,       #thin_len
@@ -100,7 +105,8 @@ end
       0,       #stage
       (x -> x), #fwd_sim
       (x -> 0), #emission_logden
-      Sample_state_and_params_type(0, 0, 0)
+      Sample_state_and_params_type(0, 0, 0),
+      default_path #save_path
       )
 
 
@@ -120,8 +126,12 @@ function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
   for stage = 1:I #by stage, I mean how much data has been conditioned upon. At stage 2, we've conditioned on 2 data points.
     #report progress
     println(string("In pMCMC at stage ", stage, "."))
+
     #check data to see if pMCMC_single_stage! introduced any errors
     Sample_state_and_params_type_data_check(MCS.current_sample)
+
+    #save samples
+    save(string(MCS.save_path, "/stage",MCS.stage, "samples_and_data"), "current_sample", MCS.current_sample)
 
     #fold in more data
     if stage>1

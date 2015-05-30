@@ -44,7 +44,7 @@ using Distributions
 
 using pMCMC_julia
   MCS = pMCMC_julia.MCMC_state()
-  MCS.bandwidth = 0.05
+  MCS.bandwidth = 0.5
   MCS.do_kde = true
   MCS.burnin_len = 1e3
   MCS.thin_len = 5
@@ -79,8 +79,11 @@ using pMCMC_julia
   end
   MCS.fwd_sim = fwd_sim
 
-#-----------------------------Save sampler prefs-------------------------------
+#-----------------------------setup what and where to save-------------------------------
 using Dates
+  today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy/SigD_obs_", now())
+  mkdir(today_filepath)
+  MCS.save_path = today_filepath
   metadata_to_save = string("This test was run at time ", now(), " with ",
                             "observations at intervals of ", t_interval,
                             " from time zero to ", T_sim,
@@ -88,10 +91,11 @@ using Dates
                             " There were ",   MCS.current_sample.num_particles, " particles, ",
                             " with wilkinson's log-uniform priors for the three unknowns and ",
                             " true rates of ", wilk_cri.rxn_rates, ". \n ",
-                            "The observed molecule was ", obs_mol_name, " at index ", Chem_rxn_tools.get_chem_indices(wilk_cri, obs_mol_name), ". \n")
+                            "The observed molecule was ", obs_mol_name, " at index ", Chem_rxn_tools.get_chem_indices(wilk_cri, obs_mol_name), ". \n",
+                            "The purpose of this test was to investigate the effect of wider KDE kernels. The bandwidth was ", MCS.bandwidth, ". "
+                            )
 
-today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiments_after_tidy/SigD_obs_", now())
-  mkdir(today_filepath)
+
 
 #-----------------------------Simulate the observations; plot; save plot-------------------------------
 sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, obs_mol_name, noise_distribution)
