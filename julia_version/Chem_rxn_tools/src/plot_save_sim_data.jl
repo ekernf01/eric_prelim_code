@@ -26,11 +26,11 @@ function plot_save_sim_data(today_filepath, sim_results::Chem_sim_result, cri::C
       x_to_display[i,j] = sim_results.x_obs[i][Chem_rxn_tools.get_chem_indices(cri, mol_name)]
     end
     push!(all_curves, Points(sim_results.t_obs, x_to_display[:, j], "color", color_list[j]))
-    setattr(all_curves[j], "label", mol_name);
+    setattr(all_curves[j], "label", mol_name)
     sim_trajec_plot = add(sim_trajec_plot, all_curves[j])
   end
   MyLegend = Legend(0.1, 0.9,  all_curves)
-  add(sim_trajec_plot, all_curves..., MyLegend);
+  add(sim_trajec_plot, all_curves..., MyLegend)
   savefig(string(today_filepath, "/simulated_data_multiple_mols.png"))
   return sim_trajec_plot
 end

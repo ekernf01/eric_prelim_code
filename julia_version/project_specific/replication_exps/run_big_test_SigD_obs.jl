@@ -102,6 +102,8 @@ sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, obs_mol_name, noise_
   mols_to_show = ["SigD", "CodY", "Hag"]
   Chem_rxn_tools.plot_save_sim_data(today_filepath, sim_results, wilk_cri, mols_to_show)
 
+using HDF5, JLD
+  @save string(today_filepath, "everything_just_before_inference")
 #-----------------------------do the inference-------------------------------
 using ProfileView
   are_we_profiling = false #faster not to profile
