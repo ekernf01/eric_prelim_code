@@ -95,28 +95,37 @@ type MCMC_state
   save_path::String
 end
 
-    default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiment_default_save_spot"
-    MCMC_state() = MCMC_state(
-      1000,    #burnin_len
-      5,       #thin_len
-      0.001,   #bandwidth
-      false,   #do_kde
-      Int64[], #num_acc
-      0,       #stage
-      (x -> x), #fwd_sim
-      (x -> 0), #emission_logden
-      Sample_state_and_params_type(0, 0, 0),
-      default_path #save_path
-      )
+default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiment_default_save_spot"
+MCMC_state() = MCMC_state(
+  1000,    #burnin_len
+  5,       #thin_len
+  0.001,   #bandwidth
+  false,   #do_kde
+  Int64[], #num_acc
+  0,       #stage
+  (x -> x), #fwd_sim
+  (x -> 0), #emission_logden
+  Sample_state_and_params_type(0, 0, 0),
+  default_path #save_path
+)
+
+#Saves the MCMC_state object to folder MCS.save_path, using the file name save_file.
+function MCS_save(save_file, MCS::MCMC_state)
+  save_to = string(MCS.save_path, save_file)
+  @save save_to MCS.burnin_len MCS.thin_len MCS.bandwidth MCS.do_kde MCS.num_acc MCS.stage MCS.current_sample
+end
 
 
-    function MCMC_state_data_check(current_sampler_state::MCMC_state)
-      if length(current_sampler_state.num_acc!=stage)
-        error("MCMC_state has mismatched fields: stage and num_acc")
-      end
-      Sample_state_and_params_type_data_check(current_sampler_state.current_sample)
-      return true
-    end
+function MCMC_state_data_check(current_sampler_state::MCMC_state)
+  if length(current_sampler_state.num_acc!=stage)
+    error("MCMC_state has mismatched fields: stage and num_acc")
+  end
+  Sample_state_and_params_type_data_check(current_sampler_state.current_sample)
+  return true
+end
+
+
+
 #This function loops over the dataset. At iteration i, it calls an MCMC-based
 #subroutine to convert a large sample from P(params|data to time i-1) into
 #a large sample from P(params|data to time i)

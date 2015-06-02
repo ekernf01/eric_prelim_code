@@ -81,9 +81,8 @@ using pMCMC_julia
 
 #-----------------------------setup what and where to save-------------------------------
 using Dates
-  today_filepath = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/replication_exps/SigD_obs_", now())
-  mkdir(today_filepath)
-  MCS.save_path = today_filepath
+  MCS.save_path = string("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/replication_exps/SigD_obs_", now(), "/")
+  mkdir(MCS.save_path)
   metadata_to_save = string("This test was run at time ", now(), " with ",
                             "observations at intervals of ", t_interval,
                             " from time zero to ", T_sim,
@@ -100,10 +99,12 @@ using Dates
 #-----------------------------Simulate the observations; plot; save plot-------------------------------
 sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, obs_mol_name, noise_distribution)
   mols_to_show = ["SigD", "CodY", "Hag"]
-  Chem_rxn_tools.plot_save_sim_data(today_filepath, sim_results, wilk_cri, mols_to_show)
+  Chem_rxn_tools.plot_save_sim_data(MCS.save_path, sim_results, wilk_cri, mols_to_show)
 
 using HDF5, JLD
-  @save string(today_filepath, "everything_just_before_inference")
+  @save string(MCS.save_path, "/everything_just_before_inference")
+  pMCMC_julia.MCS_save("MCS_just_before_inference", MCS)
+
 #-----------------------------do the inference-------------------------------
 using ProfileView
   are_we_profiling = false #faster not to profile
@@ -120,18 +121,18 @@ using ProfileView
 
 #-----------------------------save the results------------------------------
 using HDF5, JLD
-  @save string(today_filepath, "/samples_and_metadata")
+  pMCMC_julia.MCS_save("samples_and_metadata", MCS)
 
   println(metadata_to_save)
   println(string("By round, the acceptance rate was ", MCS.num_acc/(MCS.burnin_len + MCS.thin_len*num_samples_desired)))
 
 #-----------------------------plot the posterior-------------------------------
 
-  @load string(today_filepath, "/samples_and_metadata")
+  @load string(MCS.save_path, "/samples_and_metadata")
 
-  post_hists = pMCMC_julia.plot_save_marginals(MCS, today_filepath, unk_rates, sim_results.x_path[end])
+  post_hists = pMCMC_julia.plot_save_marginals(MCS, MCS.save_path, unk_rates, sim_results.x_path[end])
   include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/contour_bivariate_plot_maker.jl")
-  post_contour = contour_plot_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
+  post_contour = contour_plot_two_mols(MCS, MCS.save_path, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
   include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/bivariate_plot_maker.jl")
-  post_biv = plot_save_two_mols(MCS, today_filepath, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
+  post_biv = plot_save_two_mols(MCS, MCS.save_path, unk_names[2], unk_names[3], wilk_cri, unk_rates, unk_names)
 
