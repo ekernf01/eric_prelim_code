@@ -193,7 +193,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
     #This LF-MCMC requires you to generate the proposal for the hidden state by simulating, conditioned on the proposed parameters.
     prop_sample_state = MCS.fwd_sim(prop_sample_state, prop_sample_params, T_sim_this_stage)
 
-    #accept if A > 1 or A > unif, i.e. log>0 or log>log(unif)
+    #accept if A > 1 or A > unif, i.e. logA>0 or logA>log(unif)
     log_acc_rat =
       MCS.emission_logden(prop_sample_state, d_obs_this_stage) -
       MCS.emission_logden(prev_sample_state, d_obs_this_stage)
