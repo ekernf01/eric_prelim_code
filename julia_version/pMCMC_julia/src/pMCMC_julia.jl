@@ -85,7 +85,7 @@ end
 type MCMC_state
   burnin_len::Int64
   thin_len::Int64
-  bandwidth::Float64
+  bandwidth_multiplier::Float64
   do_kde::Bool
   num_acc::Array{Int64, 1}
   stage::Int64
@@ -99,8 +99,8 @@ default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/jul
 MCMC_state() = MCMC_state(
   1000,    #burnin_len
   5,       #thin_len
-  0.001,   #bandwidth
-  false,   #do_kde
+  0.1,   #bandwidth_multiplier
+  true,   #do_kde
   Int64[], #num_acc
   0,       #stage
   (x -> x), #fwd_sim
@@ -112,7 +112,7 @@ MCMC_state() = MCMC_state(
 #Saves the MCMC_state object to folder MCS.save_path, using the file name save_file.
 function MCS_save(save_file, MCS::MCMC_state)
   save_to = string(MCS.save_path, save_file)
-  @save save_to MCS.burnin_len MCS.thin_len MCS.bandwidth MCS.do_kde MCS.num_acc MCS.stage MCS.current_sample
+  @save save_to MCS.burnin_len MCS.thin_len MCS.bandwidth_multiplier MCS.do_kde MCS.num_acc MCS.stage MCS.current_sample
 end
 
 
@@ -173,11 +173,19 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
   prop_sample_state = Array(Int64, MCS.current_sample.state_dim)
 
   chain_len = MCS.burnin_len + MCS.thin_len*MCS.current_sample.num_particles #says how many iterations we'll do
-  record_index = 0 #Says how many samples we've saved.
-  num_acc = 0 #Says how many proposals we've accepted.
+  record_index = 0                                                           #Says how many samples we've saved.
+  num_acc = 0                                                                #Says how many proposals we've accepted.
   range_num_part = [1:MCS.current_sample.num_particles] #Helps with fast resampling if I allocate this outside the loop.
+
+  #set up the KDE
+  silverman_bw = ones(Float64, MCS.current_sample.par_dim)
+  for d in 1:MCS.current_sample.par_dim
+    silverman_bw[d] = MCS.current_sample.num_particles^(-1/(4+MCS.current_sample.par_dim))*std(MCS.current_sample.params[d, :])
+  end
+  bw_this_stage = MCS.bandwidth_multiplier*silverman_bw
+  println("Current bandwidths: ", bw_this_stage)
   if MCS.do_kde
-    kde_kernel = Normal(0,MCS.bandwidth)
+    kde_kernel = Normal(0,1)
   end
 
   #------------------------------Loop------------------------------
@@ -187,7 +195,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
     prop_sample_params = MCS.current_sample.params[:,prop_particle_index]
     prop_sample_state = MCS.current_sample.state[:,prop_particle_index]
     if(MCS.do_kde)
-      prop_sample_params = prop_sample_params.*exp(rand(kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
+      prop_sample_params = prop_sample_params.*exp(bw_this_stage.*rand(kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
     end
 
     #This LF-MCMC requires you to generate the proposal for the hidden state by simulating, conditioned on the proposed parameters.
