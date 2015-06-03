@@ -3,23 +3,32 @@ using pMCMC_julia
 using HDF5, JLD
 using Winston
 using KernelDensity
-#today_filepath = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/replication_exps/may29 large bandwidth tests/wasted_run"
 
-function plot_biv_at_each_stage(today_filepath::String, rate_name_x, rate_name_y, ground_truth_params=[], unk_names=[])
+function plot_biv_at_each_stage(today_filepath::String)
   cd()
   cd(today_filepath)
-  mkdir(joinpath(today_filepath, "stagewise_plots/"))
+
+  unk_names = load(string("everything_just_before_inference"), "unk_names")
+  num_unks = load(string("everything_just_before_inference"), "num_unks")
+  unk_rates = load(string("everything_just_before_inference"), "unk_rates")
+  demo_cri = load(string("everything_just_before_inference"), "demo_cri")
+  ts_len = length(load(string("everything_just_before_inference"), "t_obs"))
+  rate_name_x = unk_names[end-1]
+  rate_name_y = unk_names[end]
+  folder_w_plots = joinpath(today_filepath, "stagewise_plots/")
+  if !isdir(folder_w_plots)
+    mkdir(folder_w_plots)
+  end
 
   MCS = pMCMC_julia.MCMC_state()
-  for i in 1:23
-    my_dict = load(string("stage", i, "sample"))
-    MCS.current_sample = my_dict["current_sample"]
+  for i in 0:(ts_len-1)
+    MCS.current_sample = load(string("stage", i, "sample"),"current_sample")
 
     rate_ind_x = findin(unk_names,[rate_name_x])[1]
     rate_ind_y = findin(unk_names,[rate_name_y])[1]
     x = log(MCS.current_sample.params[rate_ind_x, :][:])
     y = log(MCS.current_sample.params[rate_ind_y, :][:])
-    posterior_plot = imagesc(kde((x, y), boundary=((-10,5), (-10,5))))
+    posterior_plot = imagesc(kde((x, y)))
 
     title("Bivariate MCMC output, truth in red. Log(rate) displayed.")
     xlabel(rate_name_x)

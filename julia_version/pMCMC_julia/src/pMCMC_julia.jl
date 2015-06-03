@@ -86,6 +86,7 @@ type MCMC_state
   burnin_len::Int64
   thin_len::Int64
   bandwidth_multiplier::Float64
+  bw_max::Float64
   do_kde::Bool
   num_acc::Array{Int64, 1}
   stage::Int64
@@ -99,8 +100,9 @@ default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/jul
 MCMC_state() = MCMC_state(
   1000,    #burnin_len
   5,       #thin_len
-  0.1,   #bandwidth_multiplier
-  true,   #do_kde
+  1,       #bandwidth_multiplier
+  1,       #bw_max
+  true,    #do_kde
   Int64[], #num_acc
   0,       #stage
   (x -> x), #fwd_sim
@@ -182,7 +184,8 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
   for d in 1:MCS.current_sample.par_dim
     silverman_bw[d] = MCS.current_sample.num_particles^(-1/(4+MCS.current_sample.par_dim))*std(MCS.current_sample.params[d, :])
   end
-  bw_this_stage = MCS.bandwidth_multiplier*silverman_bw
+  bw_this_stage = [minimum([cand_bw, MCS.bw_max]) for cand_bw in (MCS.bandwidth_multiplier*silverman_bw)]
+  bw_this_stage = mean(bw_this_stage)
   println("Current bandwidths: ", bw_this_stage)
   if MCS.do_kde
     kde_kernel = Normal(0,1)

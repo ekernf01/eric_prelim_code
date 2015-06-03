@@ -86,8 +86,9 @@ include("make_sim_data.jl")
 include("plot_save_sim_data.jl")
 
 #Produces a demo rxn system with specified number of molecules.
-#slow rxn rates, no interactions among molecules, with decay 100x slower than immigration and init vals of 50.
-function make_demo_cri(num_species::Int64)
+#slow rxn rates with decay 100x slower than immigration and init vals of 50.
+#Interaction: remaining molecules catalyze creation of mol1.
+function make_demo_cri_v1(num_species::Int64)
 
     demo_cri = Chem_rxn_info(
     [string("mol",i ) for i in 1:num_species],           #species_labels
@@ -95,22 +96,51 @@ function make_demo_cri(num_species::Int64)
     num_species,                                         #num_species
 
     hcat(eye(Int64,num_species, num_species),
-     -eye(Int64,num_species, num_species)),              #sto_mat
+     -eye(Int64,num_species, num_species),
+     ones(Int64,num_species, 1)),                         #sto_mat
     hcat(zeros(Int64,num_species, num_species),
-     eye(Int64,num_species, num_species)),               #rxn_entry_mat
+     eye(Int64,num_species, num_species),
+     eye(Int64,num_species, 1)),                        #rxn_entry_mat
 
     vcat([string("prod_mol",i ) for i in 1:num_species],
-    [string("decay_mol",i ) for i in 1:num_species]),    #rxn_labels
+    [string("decay_mol",i ) for i in 1:num_species],
+         ["mol1_boost"]),                                #rxn_labels
 
     2*num_species,                                       #num_rxns
     vcat([0.01 for i in 1:num_species],
-    [0.0001 for i in 1:num_species]),                    #rxn_rates
+    [0.0001 for i in 1:num_species],
+    [0.001]),                                            #rxn_rates
     vcat([string("\phi -> ", "mol",i) for i in 1:num_species],
-    [string("mol",i, "-> \phi" ) for i in 1:num_species]),    #rxns_written_out
+    [string("mol",i, "-> \phi" ) for i in 1:num_species],
+    ["mol1 splits into others"]),                        #rxns_written_out
 
     Int64[],                                             #rxn_pos_in_SBML_file
     String[],                                            #SBML_par_names
     Float64[]                                            #SBML_par_vals
+    )
+  chem_rxn_data_check(demo_cri)
+  return demo_cri
+end
+
+#Produces a demo rxn system with specified number of molecules.
+#slow rxn rates with decay 100x slower than immigration and init vals of 50.
+#Interaction: remaining molecules catalyze creation of mol1.
+function make_demo_cri_v2()
+    demo_cri = Chem_rxn_info(
+      ["mol1"],                                              #species_labels
+      50*ones(Int64, 1),                                   #init_amts
+      1,                                                   #num_species
+
+      reshape(Int64[-1, 1], 1, 2),                         #sto_mat
+      eye(Int64, 1, 2),                                    #rxn_entry_mat
+      ["decay", "prod"],                                   #rxn_labels
+      2,                                                   #num_rxns
+      [0.0001, 0.01],                                      #rxn_rates
+      ["decay", "prod"],                                   #rxns_written_out
+
+      Int64[],                                             #rxn_pos_in_SBML_file
+      String[],                                            #SBML_par_names
+      Float64[]                                            #SBML_par_vals
     )
   chem_rxn_data_check(demo_cri)
   return demo_cri

@@ -1,13 +1,14 @@
 #This allows Julia to find Eric's modules.
 workspace()
 push!(LOAD_PATH, "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/")
-
+#
 #The most oft changed preference
 num_samples_desired = 10_000
 
 #-----------------------------Load in info from SBML shorthand and visualize results.------------------------------
   using Chem_rxn_tools
-  demo_cri = Chem_rxn_tools.make_demo_cri(2)
+  demo_cri = Chem_rxn_tools.make_demo_cri_v2()
+  Chem_rxn_tools.chem_rxn_data_check(demo_cri)
   sto_mat_graph,rxn_entry_mat_graph = Chem_rxn_tools.make_cri_graphic(demo_cri)
   sto_mat_graph
   rxn_entry_mat_graph
@@ -21,8 +22,8 @@ using Distributions
   noise_distribution = Normal(0, 10)
   obs_mol_name = "mol1"
   num_unks = 2
-  unk_names = ["prod_mol1", "decay_mol2"]
-  unk_rates = [0.01, 0.0001]
+  unk_names = ["decay", "prod"]
+  unk_rates = [0.0001, 0.01]
   unk_inds = Int64[]
   for word in unk_names
     push!(unk_inds, Chem_rxn_tools.get_rate_indices(demo_cri, word))
@@ -41,13 +42,13 @@ using Distributions
 
 using pMCMC_julia
   MCS = pMCMC_julia.MCMC_state()
-  MCS.bandwidth_multiplier = 0.1
+  MCS.bandwidth_multiplier = 25
   MCS.do_kde = true
   MCS.burnin_len = 1e3
   MCS.thin_len = 5
   param_sample = zeros(num_unks,num_samples_desired)
-  param_sample[1, :] = 10.^(-4*rand(1,num_samples_desired))
-  param_sample[2, :] = 10.^(-2-4*rand(1,num_samples_desired))
+  param_sample[1, :] = 10.^(-2-4*rand(1,num_samples_desired))
+  param_sample[2, :] = 10.^(-4*rand(1,num_samples_desired))
   state_sample = repmat(demo_cri.init_amts,1,num_samples_desired)
   MCS.current_sample = pMCMC_julia.Sample_state_and_params_type(param_sample, state_sample)
 
@@ -90,11 +91,11 @@ using Dates
 
 #-----------------------------Simulate the observations; plot; save plot-------------------------------
 sim_results = Chem_rxn_tools.make_sim_data(t_obs, demo_cri, obs_mol_name, noise_distribution)
-  mols_to_show = ["mol1", "mol2"]
+  mols_to_show = ["mol1"]
   Chem_rxn_tools.plot_save_sim_data(MCS.save_path, sim_results, demo_cri, mols_to_show)
 
 using HDF5, JLD
-  @save string(MCS.save_path, "/everything_just_before_inference")
+  @save joinpath(MCS.save_path, "everything_just_before_inference")
   pMCMC_julia.MCS_save("MCS_just_before_inference", MCS)
 
 #-----------------------------do the inference-------------------------------
@@ -119,7 +120,6 @@ using HDF5, JLD
   println(string("By round, the acceptance rate was ", MCS.num_acc/(MCS.burnin_len + MCS.thin_len*num_samples_desired)))
 
 #-----------------------------plot the posterior-------------------------------
-
 @load string(MCS.save_path, "/samples_and_metadata")
   post_hists = pMCMC_julia.plot_save_marginals(MCS, MCS.save_path, unk_rates, sim_results.x_path[end])
   include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/contour_bivariate_plot_maker.jl")
@@ -127,5 +127,5 @@ using HDF5, JLD
   include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/bivariate_plot_maker.jl")
   post_biv = plot_save_two_mols(MCS, MCS.save_path, unk_names[num_unks-1], unk_names[num_unks], demo_cri, unk_rates, unk_names)
   include("/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/plot_biv_at_each_stage.jl")
-  plot_biv_at_each_stage(MCS.save_path, unk_names[num_unks-1], unk_names[num_unks], unk_rates, unk_names)
+  plot_biv_at_each_stage(MCS.save_path)
 
