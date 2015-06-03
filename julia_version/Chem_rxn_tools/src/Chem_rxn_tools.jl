@@ -86,7 +86,7 @@ include("make_sim_data.jl")
 include("plot_save_sim_data.jl")
 
 #Produces a demo rxn system with specified number of molecules.
-#slow rxn rates, no interactions among molecules, with decay 100x slower than multiplication and init vals of 50.
+#slow rxn rates, no interactions among molecules, with decay 100x slower than immigration and init vals of 50.
 function make_demo_cri(num_species::Int64)
 
     demo_cri = Chem_rxn_info(
@@ -96,7 +96,7 @@ function make_demo_cri(num_species::Int64)
 
     hcat(eye(Int64,num_species, num_species),
      -eye(Int64,num_species, num_species)),              #sto_mat
-    hcat(eye(Int64,num_species, num_species),
+    hcat(zeros(Int64,num_species, num_species),
      eye(Int64,num_species, num_species)),               #rxn_entry_mat
 
     vcat([string("prod_mol",i ) for i in 1:num_species],
@@ -105,7 +105,8 @@ function make_demo_cri(num_species::Int64)
     2*num_species,                                       #num_rxns
     vcat([0.01 for i in 1:num_species],
     [0.0001 for i in 1:num_species]),                    #rxn_rates
-    String[],                                            #rxns_written_out
+    vcat([string("\phi -> ", "mol",i) for i in 1:num_species],
+    [string("mol",i, "-> \phi" ) for i in 1:num_species]),    #rxns_written_out
 
     Int64[],                                             #rxn_pos_in_SBML_file
     String[],                                            #SBML_par_names
