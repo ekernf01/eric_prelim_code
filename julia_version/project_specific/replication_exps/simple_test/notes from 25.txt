@@ -1,0 +1,6 @@
+Round 25 and onwards are to implement Hari’s idea of uncoupling the simulation from the sampler. To be more specific: they use no unknown parameters. The prior is the posterior, so the sampler can be evaluated against a known distribution. Thinking about this, it boils down to a really terrible method. Sample from the prior, then add problems in three ways: 
+1) run through 24 rounds of resampling 
+2) based on metropolis-hastings, so you get extra repeats
+3) with acceptance probabilities depending on fairly variable output from forward simulations.
+
+The relevant script is test_prior_sample.jl.

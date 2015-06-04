@@ -1,0 +1,1 @@
+Bandwidth experiments with only 4 data points. Hopefully, I will be able to prune out less promising alternatives more quickly this way. I’m trying a million particles with Wilkinson’s system and bandwidths fixed at 

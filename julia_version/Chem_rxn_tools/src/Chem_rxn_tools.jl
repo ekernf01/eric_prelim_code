@@ -128,7 +128,7 @@ end
 function make_demo_cri_v2()
     demo_cri = Chem_rxn_info(
       ["mol1"],                                              #species_labels
-      50*ones(Int64, 1),                                   #init_amts
+      500*ones(Int64, 1),                                   #init_amts
       1,                                                   #num_species
 
       reshape(Int64[-1, 1], 1, 2),                         #sto_mat

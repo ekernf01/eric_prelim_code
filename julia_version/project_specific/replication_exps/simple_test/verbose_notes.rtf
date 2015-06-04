@@ -1,0 +1,113 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww18160\viewh11920\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs24 \cf0 Following Charlie Geyer\'92s advice on MCMC debugging, I printed everything. Here\'92s what I saw. Check the big bold part ~80 lines in. A particle gets selected at index 98. The log-space KDE alters the components by no more than a factor of 3 (the bw was about 1). A too-high decay rate relative to the immigration rate generates a sample path plummeting from 500 molecules to 80. The log density is really low. The proposal gets rejected. The particle stays at its old value.\
+\
+\
+WARNING: pMCMC! modifies the MCMC_state objects that it is given.\
+In pMCMC at stage 1.\
+T_sim_this_stage is: 300.0\
+d_obs is currently: 488.19201748956834\
+prop_particle_index is: 34\
+prev_sample_params is: [2.2243288666851166e-6,0.017963464603319372]\
+prev_sample_state is: [500]\
+Current bandwidths: 1.0177143065200909\
+bw_this_stage is: 1.0177143065200909\
+kde_kernel is: Normal(\uc0\u956 =0.0, \u963 =1.0)\
+prop_particle_index is: 99\
+prop_sample_params before KDE is: [5.415036331780869e-6,0.008310397936637409]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [2.5977838074490856e-6,0.0022511535993067822]\
+prop_sample_state after fwd sim is: [500]\
+logden(prop_sample_state, d_obs_this_stage) is: -3.918665881032018\
+logden(prev_sample_state, d_obs_this_stage) is: -3.918665881032018\
+log_acc_rat is: 0.0\
+logunif is: -0.25165377838935443\
+Accepted!\
+acc_sample_params is: [2.5977838074490856e-6,0.0022511535993067822]\
+acc_sample_state is: [500]\
+-------------pausing---------------\
+prop_particle_index is: 66\
+prop_sample_params before KDE is: [0.0005687835876145963,0.1431415963987092]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [0.0017310112466535743,0.21362649654883475]\
+prop_sample_state after fwd sim is: [332]\
+logden(prop_sample_state, d_obs_this_stage) is: -125.20125526350684\
+logden(prev_sample_state, d_obs_this_stage) is: -3.918665881032018\
+log_acc_rat is: -121.28258938247482\
+logunif is: -4.692363181461702\
+Rejected!\
+acc_sample_params is: [2.5977838074490856e-6,0.0022511535993067822]\
+acc_sample_state is: [500]\
+-------------pausing---------------\
+prop_particle_index is: 84\
+prop_sample_params before KDE is: [9.943245837515344e-6,0.015840183636809776]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [9.431737792751453e-6,0.011803922775369735]\
+prop_sample_state after fwd sim is: [501]\
+logden(prop_sample_state, d_obs_this_stage) is: -4.041745706136335\
+logden(prev_sample_state, d_obs_this_stage) is: -3.918665881032018\
+log_acc_rat is: -0.12307982510431703\
+logunif is: -0.138755091317576\
+Accepted!\
+acc_sample_params is: [9.431737792751453e-6,0.011803922775369735]\
+acc_sample_state is: [501]\
+-------------pausing---------------\
+prop_particle_index is: 86\
+prop_sample_params before KDE is: [7.368116588631952e-5,0.0017067332969147387]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [4.152947305497811e-5,0.000607266613542439]\
+prop_sample_state after fwd sim is: [494]\
+logden(prop_sample_state, d_obs_this_stage) is: -3.3901869304061187\
+logden(prev_sample_state, d_obs_this_stage) is: -4.041745706136335\
+log_acc_rat is: 0.6515587757302161\
+logunif is: -0.9832295297770107\
+Accepted!\
+acc_sample_params is: [4.152947305497811e-5,0.000607266613542439]\
+acc_sample_state is: [494]\
+-------------pausing---------------\
+prop_particle_index is: 54\
+prop_sample_params before KDE is: [2.0026371303199996e-6,0.15854028396619815]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [2.3696656644961257e-6,0.11099565292186693]\
+prop_sample_state after fwd sim is: [543]\
+logden(prop_sample_state, d_obs_this_stage) is: -18.241098360517633\
+logden(prev_sample_state, d_obs_this_stage) is: -3.3901869304061187\
+log_acc_rat is: -14.850911430111514\
+logunif is: -0.7530661004423409\
+Rejected!\
+acc_sample_params is: [4.152947305497811e-5,0.000607266613542439]\
+acc_sample_state is: [494]\
+-------------pausing---------------\
+\
+
+\b\fs28 prop_particle_index is: 98\
+prop_sample_params before KDE is: [0.004215392753112567,0.9113358232513316]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [0.013347261127026786,0.8962296141610061]\
+prop_sample_state after fwd sim is: [80]\
+logden(prop_sample_state, d_obs_this_stage) is: -836.3251393372192\
+logden(prev_sample_state, d_obs_this_stage) is: -3.3901869304061187\
+log_acc_rat is: -832.9349524068131\
+logunif is: -0.14112506758906138\
+Rejected!\
+acc_sample_params is: [4.152947305497811e-5,0.000607266613542439]\
+acc_sample_state is: [494]\
+-------------pausing---------------
+\b0\fs24 \
+prop_particle_index is: 92\
+prop_sample_params before KDE is: [6.745769982792158e-5,0.021461351282842607]\
+prop_sample_state before fwd sim is: [500]\
+prop_sample_params after KDE is: [0.0001654743666598597,0.014944814502897603]\
+prop_sample_state after fwd sim is: [487]\
+logden(prop_sample_state, d_obs_this_stage) is: -3.228628154675903\
+logden(prev_sample_state, d_obs_this_stage) is: -3.3901869304061187\
+log_acc_rat is: 0.16155877573021593\
+logunif is: -0.042265752051150275\
+Accepted!\
+acc_sample_params is: [0.0001654743666598597,0.014944814502897603]\
+acc_sample_state is: [487]\
+-------------pausing---------------}
