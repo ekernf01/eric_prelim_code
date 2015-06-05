@@ -34,6 +34,7 @@ function start_off_test(ep::Exp_prefs, num_stages_to_try::Int64)
   for i in 1:3
     println(string(ep.unk_names[i], " with rate ", ep.unk_rates[i], " should be: ", wilk_cri.rxn_labels[ep.unk_inds[i]], " with rate ", wilk_cri.rxn_rates[ep.unk_inds[i]] ,"."))
   end
+println("start_off_line 39")
 
 #-----------------------------Set up the sampler prefs-------------------------------
 
@@ -73,12 +74,14 @@ function start_off_test(ep::Exp_prefs, num_stages_to_try::Int64)
   ep.time_of_test = now()
   MCS.save_path = joinpath(ep.save_folder, string(ep.time_of_test))
   mkdir(MCS.save_path)
-
 #-----------------------------Simulate the observations; plot; save plot-------------------------------
 sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, ep.obs_mol_name, noise_distribution)
   Chem_rxn_tools.plot_save_sim_data(MCS.save_path, sim_results, wilk_cri, mols_to_show)
 
 metadata_path = joinpath(MCS.save_path, "everything_just_before_inference")
+  sim_results.x_path = []
+  sim_results.rxn_times = []
+  sim_results.rxn_types = []
   save(metadata_path,
         "ep", ep,
         "wilk_cri", wilk_cri,

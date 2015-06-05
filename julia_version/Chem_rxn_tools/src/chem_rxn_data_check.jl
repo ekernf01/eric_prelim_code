@@ -50,8 +50,8 @@ function chem_rxn_data_check!(cri_to_check::Chem_rxn_info)
     push!(cri_to_check.sto_mat_nonzero_inds, sto_mat_temp_nonzeros)
     push!(cri_to_check.rxn_entry_mat_nonzero_inds, rxn_entry_temp_nonzeros)
   end
-#   println("chem_rxn_data_check! returning with cri_to_check.sto_mat_nonzero_inds = ", cri_to_check.sto_mat_nonzero_inds)
-#   println("chem_rxn_data_check! returning with cri_to_check.rxn_entry_mat_nonzero_inds = ", cri_to_check.rxn_entry_mat_nonzero_inds)
+  println("chem_rxn_data_check! returning with cri_to_check.sto_mat_nonzero_inds = ", cri_to_check.sto_mat_nonzero_inds)
+   println("chem_rxn_data_check! returning with cri_to_check.rxn_entry_mat_nonzero_inds = ", cri_to_check.rxn_entry_mat_nonzero_inds)
   return true
 end
 

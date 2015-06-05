@@ -26,4 +26,21 @@ There are three main modules that make up this project:
       A vector of real-valued reaction rates and another containing integer-valued molecule counts
       Metadata such as names for the various molecules and reactions
       Metadata from an SBML shorthand file, if such a file were used to describe the system
-    A secondary datatype associated with Chem_rxn_tools is the type Chem_sim_results.
+    A secondary datatype associated with Chem_rxn_tools is the type Chem_sim_results. Among other things, it contains:
+      All the reactions and the times at which they occur
+      discrete observations with error and the times they were made at
+
+  Prelim_experiments--a module managing the overall structure.
+    The main data type used here is Exp_prefs, with instances usually named ep. This contains:
+      The timescale for the simulated data
+      The source for the chemical reaction system--if "wilk", then it loads in Wilkinson's system
+      The names of unknown parameters and observed molecules
+      Parameters governing how and whether to do a kde
+      The number of particles
+
+Routines meant to be public:
+  pMCMC_julia--none of these routines are meant to be used directly, at least not just for running experiments.
+    But, the interfaces called by other modules are:
+      Constructors for MCMC_state objects
+      pMCMC!(d_obs, t_obs, MCS::MCMC_state), which carries out inference given data d_obs observed at times t_obs
+      MCMC_state_data_check, which ensures internal consistency of different representations of the same data
