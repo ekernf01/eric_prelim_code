@@ -119,7 +119,9 @@ MCMC_state() = MCMC_state(
 
 #Saves the MCMC_state object to folder MCS.save_path, using the file name save_file.
 function MCS_save(save_name::String, MCS::MCMC_state)
-  save_to = string(MCS.save_path, save_name)
+  temp = MCS.save_path
+  save_to = string(temp,"/", save_name)
+  println("MCS_save is writing to: ", save_to)
   save(save_to,
         "verbose", MCS.verbose,
         "pause_len", MCS.pause_len,
@@ -194,8 +196,10 @@ function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
     #check data to see if pMCMC_single_stage! introduced any errors
     Sample_state_and_params_type_data_check(MCS.current_sample)
 
+    println("In pMCMC!, MCS.save_path is ", MCS.save_path)
+
     #save samples
-    pMCMC_julia.MCS_save(string("/stage",MCS.stage, "sample"), MCS)
+    pMCMC_julia.MCS_save(string("stage",MCS.stage, "sample"), MCS)
 
     #fold in more data
     if stage>1

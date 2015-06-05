@@ -13,7 +13,7 @@ function plot_biv_at_each_stage(today_filepath::String)
     mkdir(folder_w_plots)
   end
 
-  for i in 0:ep.num_intervals
+  for i in 0:MCS.stage
     if i==ep.num_intervals
       MCS = pMCMC_julia.MCS_load(string("after_inf_sample"))
     else
