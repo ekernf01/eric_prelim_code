@@ -15,8 +15,17 @@ workspace()
     "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/Prelim_experiments/src/tests" #save_folder
     )
 
-Prelim_experiments.start_off_test(ep, 6)
+
+using ProfileView
+Profile.clear()
+  @profile Prelim_experiments.start_off_test(ep, 1)
+
+  ProfileView.view()
+
 last_test_load_path = joinpath(ep.save_folder, string(ep.time_of_test))
-Prelim_experiments.pick_up_test(last_test_load_path, 6)
-Prelim_experiments.pick_up_test(last_test_load_path, 6)
-Prelim_experiments.pick_up_test(last_test_load_path, 6)
+
+using ProfileView
+Profile.clear()
+  @profile Prelim_experiments.pick_up_test(last_test_load_path, 1)
+  ProfileView.view()
+

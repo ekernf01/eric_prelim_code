@@ -4,6 +4,9 @@ println("Apologies: Chem_rxn_tools takes a little while to load.")
 # --storing info about chemical reactions
 # --simulating chemical reactions via a markov jump process (implementation of the gillespie algorithm)
 # --reading chemical reaction systems from SBML shorthand (SBML is "systems biology markup language")
+#
+#More information is available in gillespie.jl.
+#
 # Example code:
 # SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/chem_rxn_tools/wilkinson_rxns_SBML_shorthand.txt"
 # using Chem_rxn_tools
@@ -18,6 +21,8 @@ type Chem_rxn_info
   num_species::Int64
 
   #Stoichiometry and reactions
+  sto_mat_nonzero_inds::Array{Array{Int64, 1}}
+  rxn_entry_mat_nonzero_inds::Array{Array{Int64, 1}}
   sto_mat::Matrix{Int64}
   rxn_entry_mat::Matrix{Int64}
   rxn_labels::Array{String,1}
@@ -32,13 +37,18 @@ type Chem_rxn_info
 end
 
 #constructor to make an empty chem_rxn_info
-Chem_rxn_info() = Chem_rxn_info(
+function Chem_rxn_info()
+  println("Warning: always run chem_rxn_data_check!() after populating a Chem_rxn_info object.")
+  return (Chem_rxn_info(
   String[],                            #species_labels
   Int64[],                             #init_amts
   0,                                   #num_species
 
+  Array{Int64}[],                      #sto_mat_nonzero_inds
+  Array{Int64}[],                      #rxn_entry_mat_nonzero_inds
   zeros(Int64, 0, 0),                  #sto_mat
   zeros(Int64, 0, 0),                  #rxn_entry_mat
+
   String[],                            #rxn_labels
   0,                                   #num_rxns
   Float64[],                           #rxn_rates
@@ -47,7 +57,48 @@ Chem_rxn_info() = Chem_rxn_info(
   Int64[],                             #rxn_pos_in_SBML_file
   String[],                            #SBML_par_names
   Float64[]                            #SBML_par_vals
-  )
+  ))
+end
+
+#constructor to mimic old constructor
+function Chem_rxn_info(
+  species_labels,
+  init_amts,
+  num_species,
+
+  sto_mat,
+  rxn_entry_mat,
+
+  rxn_labels,
+  num_rxns,
+  rxn_rates,
+  rxns_written_out,
+
+  rxn_pos_in_SBML_file,
+  SBML_par_names,
+  SBML_par_vals)
+
+  println("Warning: always run chem_rxn_data_check!() after populating a Chem_rxn_info object.")
+  return (Chem_rxn_info(
+  String[],                            #species_labels
+  Int64[],                             #init_amts
+  0,                                   #num_species
+
+  Array{Int64}[],                      #sto_mat_nonzero_inds
+  Array{Int64}[],                      #rxn_entry_mat_nonzero_inds
+  zeros(Int64, 0, 0),                  #sto_mat
+  zeros(Int64, 0, 0),                  #rxn_entry_mat
+
+  String[],                            #rxn_labels
+  0,                                   #num_rxns
+  Float64[],                           #rxn_rates
+  String[],                            #rxns_written_out
+
+  Int64[],                             #rxn_pos_in_SBML_file
+  String[],                            #SBML_par_names
+  Float64[]                            #SBML_par_vals
+  ))
+end
 
 #-------------------------------------Chem_sim_result-------------------------------------
 type Chem_sim_result
@@ -118,7 +169,7 @@ function make_demo_cri_v1(num_species::Int64)
     String[],                                            #SBML_par_names
     Float64[]                                            #SBML_par_vals
     )
-  chem_rxn_data_check(demo_cri)
+  chem_rxn_data_check!(demo_cri)
   return demo_cri
 end
 
@@ -142,7 +193,7 @@ function make_demo_cri_v2()
       String[],                                            #SBML_par_names
       Float64[]                                            #SBML_par_vals
     )
-  chem_rxn_data_check(demo_cri)
+  chem_rxn_data_check!(demo_cri)
   return demo_cri
 end
 end

@@ -5,11 +5,11 @@ function gillespie_basic_test()
   cri.sto_mat = ones(Int,2,2)
   cri.rxn_entry_mat = zeros(Int,2,2)
   cri.rxn_rates = ones(2)
+  chem_rxn_data_check!(cri)
 
   T_sim = 5.0
   inside_sampler = false
   demo_sim_results = gillespie(cri, T_sim, inside_sampler)
-  chem_rxn_data_check(cri)
 
   if demo_sim_results.rxn_times[1] != 0
     println("rxn_times did not have first element zero.")
@@ -32,6 +32,7 @@ function gillespie_stoch_mean_test(num_runs, k, n_0)
   cri.rxn_rates = 0.01*ones(Float64, 1)
   cri.num_rxns = 1
   cri.num_species = 1
+  chem_rxn_data_check!(cri)
 
   T_sim = 50.0
   tgrid = [0:0.1:T_sim]
@@ -68,6 +69,7 @@ function gillespie_stoch_mean_test_sampler_version(num_runs, k, n_0)
   T_sim = 50.0
   tgrid = [0:0.1:T_sim]
   inside_sampler = true
+  chem_rxn_data_check!(cri)
 
   #initialize plot
   decay_plot = FramedPlot(
@@ -92,4 +94,8 @@ function gillespie_stoch_mean_test_sampler_version(num_runs, k, n_0)
 end
 
 
+
+# gillespie_stoch_mean_test_sampler_version(100, 0.1, 50)
+# gillespie_stoch_mean_test(100, 0.1, 50)
+# gillespie_basic_test()
 

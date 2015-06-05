@@ -33,7 +33,7 @@ function SBML_read(SBML_file_path)
   get_rxn_info!(lines,my_cri)
   get_stoich_info!(lines,my_cri)
   get_rate_info!(lines,my_cri)
-  chem_rxn_data_check(my_cri)
+  chem_rxn_data_check!(my_cri)
 #   println("GFP is at index ", chem_indices.GFP_ind,
 #           " and species_info.species_labels[", chem_indices.GFP_ind, "] is ", species_labels[chem_indices.GFP_ind], ".")
 #   println("SigD is at index ", chem_indices.SigD_ind,

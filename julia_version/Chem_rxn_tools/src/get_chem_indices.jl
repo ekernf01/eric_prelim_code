@@ -19,12 +19,12 @@ function get_chem_indices_tester()
   demo_cri = Chem_rxn_info()
   demo_cri.species_labels = ["kryptonite", "kryptonite_cinnamon_rolls", "cinnamon_rolls"]
   demo_cri.num_species = 3
-  chem_rxn_data_check(demo_cri)
+  chem_rxn_data_check!(demo_cri)
   flag1 = (1==get_chem_indices(demo_cri,"kryptonite"))
 
   demo_cri.species_labels = ["kryptonite_cinnamon_rolls", "cinnamon_rolls"]
   demo_cri.num_species = 2
-  chem_rxn_data_check(demo_cri)
+  chem_rxn_data_check!(demo_cri)
   flag2 = (0==get_chem_indices(demo_cri, "kryptonite"))
 
   if flag1 && flag2

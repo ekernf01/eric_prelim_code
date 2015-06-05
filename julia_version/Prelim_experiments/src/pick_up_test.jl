@@ -37,8 +37,6 @@ tic()
   #You start inference. MCS.stage==0. You condition on data point #1 and run through the sampler once.
   #Then MCS.stage gets set to 1. Repeat. Thus, if MCS.stage==i, you need to add datum i+1 next.
   data_range = (MCS.stage+1):(MCS.stage+num_stages_to_try)
-  println("In pick_up_test, data_range is: ", data_range)
-  println("In pick_up_test, d_obs is: ", sim_results.d_obs)
   pMCMC_julia.pMCMC!(sim_results.d_obs[data_range], sim_results.t_obs[data_range], MCS)
   ep.time_taken = toc()
 

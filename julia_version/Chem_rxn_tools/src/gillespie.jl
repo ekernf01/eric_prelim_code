@@ -19,6 +19,9 @@
 # rxn_rates, reaction rates, MEASURED IN INTENSITY PER SECOND
 # T_sim, the time over which to simulate, MEASURED IN SECONDS
 # inside_sampler, a boolean telling it whether this run is inside the LF-pMCMC
+# sto_mat_nonzero_inds and rxn_entry_mat_nonzero_inds are arrays that help take advantage of sparsity.
+# For the jth reaction, sto_mat_nonzero_inds[j] is an array of indices so that sto_mat[sto_mat_nonzero_inds[j][i], j] is nonzero (and nothing else is).
+# Similar for rxn_entry_mat.
 
 # It verifies:
 
@@ -41,7 +44,7 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
   t_spent = 0
 
   if(!inside_sampler)
-    if(T_sim<0 || !chem_rxn_data_check(cri))
+    if(T_sim<0 || !chem_rxn_data_check!(cri))
       error("gillespie received bad input.")
     end
     rxn_times = Array(Float64, 0)
@@ -54,10 +57,14 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
   while(t_spent < T_sim)
     #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
 
+    # For the jth reaction, sto_mat_nonzero_inds[j] is an array of indices so
+    #that sto_mat[sto_mat_nonzero_inds[rxn_index][i], rxn_index] is nonzero (and nothing else is).
     alpha = copy(cri.rxn_rates)
-    for rxn_index = 1:cri.num_rxns
-      for mol_index = 1:cri.num_species
-        alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], cri.rxn_entry_mat[mol_index, rxn_index])
+    if !isempty(cri.rxn_entry_mat_nonzero_inds)
+      for rxn_index = 1:cri.num_rxns
+        for mol_index in cri.rxn_entry_mat_nonzero_inds[rxn_index]
+          alpha[rxn_index] = alpha[rxn_index]*binomial(current_x[mol_index], cri.rxn_entry_mat[mol_index, rxn_index])
+        end
       end
     end
     alpha_sum = sum(alpha)
@@ -76,7 +83,11 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
     #count, and the reaction times and types list
     if(t_spent < T_sim)
       current_rxn_type = rand(Categorical(alpha/alpha_sum))
-      current_x = current_x + cri.sto_mat[:,current_rxn_type]
+      if !isempty(cri.sto_mat_nonzero_inds)
+        for mol_index in cri.sto_mat_nonzero_inds[current_rxn_type]
+          current_x = current_x + cri.sto_mat[mol_index,current_rxn_type]
+        end
+      end
 
       #! means that this modifies the array that it is given
       #also means logical negation
