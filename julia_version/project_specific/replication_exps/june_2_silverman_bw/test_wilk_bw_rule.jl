@@ -20,3 +20,5 @@ workspace()
   @profile Prelim_experiments.start_off_test(ep, 1)
   ProfileView.view()
 
+#Prelim_experiments.make_all_plots(joinpath(ep.save_folder, string(ep.time_of_test)))
+

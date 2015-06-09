@@ -4,7 +4,7 @@ function plot_biv_at_each_stage(today_filepath::String)
   ep = load(string("everything_just_before_inference"), "ep")
   wilk_cri = load(string("everything_just_before_inference"), "wilk_cri")
   sim_results = load(string("everything_just_before_inference"), "sim_results")
-  MCS = pMCMC_julia.MCS_load("before_inf_sample")
+  MCS = pMCMC_julia.MCS_load("after_inf_sample")
 
   rate_name_x = ep.unk_names[end-1]
   rate_name_y = ep.unk_names[end]
@@ -13,7 +13,8 @@ function plot_biv_at_each_stage(today_filepath::String)
     mkdir(folder_w_plots)
   end
 
-  for i in 0:MCS.stage
+  for i in 0:ep.num_intervals
+#     println("plot_biv_at_each_stage making plot: ", i)
     if i==ep.num_intervals
       MCS = pMCMC_julia.MCS_load(string("after_inf_sample"))
     else
@@ -23,8 +24,10 @@ function plot_biv_at_each_stage(today_filepath::String)
     rate_ind_y = findin(ep.unk_names,[rate_name_y])[1]
     x = log(MCS.current_sample.params[rate_ind_x, :][:])
     y = log(MCS.current_sample.params[rate_ind_y, :][:])
-    posterior_plot = imagesc(kde((x, y)))
-
+    gc()
+    my_kde = kde((x, y))
+    posterior_plot = imagesc(my_kde)
+    gc()
     title("Bivariate MCMC output, truth in red. Log(rate) displayed.")
     xlabel(rate_name_x)
     ylabel(rate_name_y)

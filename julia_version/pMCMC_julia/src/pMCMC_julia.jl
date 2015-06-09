@@ -215,7 +215,6 @@ function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
     #Run the sampler
     pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS)
   end
-  return MCS
 end
 
 #This subroutine converts a large sample from P(params, state at time i-1|data to time i-1) into
@@ -248,7 +247,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
   #set up the KDE
   silverman_bw = ones(Float64, MCS.current_sample.par_dim)
   for d in 1:MCS.current_sample.par_dim
-    silverman_bw[d] = MCS.current_sample.num_particles^(-1/(4+MCS.current_sample.par_dim))*std(MCS.current_sample.params[d, :])
+    silverman_bw[d] = MCS.current_sample.num_particles^(-1/(4+MCS.current_sample.par_dim))*std(log(MCS.current_sample.params[d, :]))
   end
   bw_this_stage = MCS.bandwidth_multiplier*silverman_bw
   bw_this_stage = [minimum([cand_bw, MCS.bw_max]) for cand_bw in bw_this_stage]

@@ -39,7 +39,7 @@
 
 function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
 
-  current_x = cri.init_amts
+  current_x = copy(cri.init_amts)
   num_rxns_occ = 0
   t_spent = 0
 
@@ -56,10 +56,10 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
   unit_rate_expo = Exponential(1)
   while(t_spent < T_sim)
     #Get reaction propensities, prod_j c_i* (X_j choose k_ij)
+    alpha = copy(cri.rxn_rates)
 
     # For the jth reaction, sto_mat_nonzero_inds[j] is an array of indices so
     #that sto_mat[sto_mat_nonzero_inds[rxn_index][i], rxn_index] is nonzero (and nothing else is).
-    alpha = copy(cri.rxn_rates)
     if !isempty(cri.rxn_entry_mat_nonzero_inds)
       for rxn_index = 1:cri.num_rxns
         for mol_index in cri.rxn_entry_mat_nonzero_inds[rxn_index]
@@ -85,17 +85,18 @@ function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
       current_rxn_type = rand(Categorical(alpha/alpha_sum))
       if !isempty(cri.sto_mat_nonzero_inds)
         for mol_index in cri.sto_mat_nonzero_inds[current_rxn_type]
-          current_x = current_x + cri.sto_mat[mol_index,current_rxn_type]
+          current_x[mol_index] = current_x[mol_index] + cri.sto_mat[mol_index,current_rxn_type]
         end
       end
 
       #! means that this modifies the array that it is given
       #also means logical negation
       if(!inside_sampler)
+        #println("In gillespie, current_x: ", current_x, " t: ", t_spent, " type: ", current_rxn_type)
         num_rxns_occ = num_rxns_occ + 1
         push!(rxn_times, t_spent)
         push!(rxn_types, current_rxn_type)
-        push!(x_path, current_x)
+        push!(x_path, copy(current_x))
       end
     end
   end
