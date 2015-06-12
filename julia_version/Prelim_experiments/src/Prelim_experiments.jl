@@ -14,12 +14,16 @@ type Exp_prefs
   bw_min::Float64
   bandwidth_multiplier::Float64
 
-  noise_sd::Float64
+  true_noise_sd::Float64
+  ass_noise_sd::Float64
 
   cri_source::String
+  verbose::Bool
 
   obs_mol_name::String
   obs_mol_ind::Int64
+  mols_to_show::Array{String,1}
+
   unk_names::Array{String,1}
   unk_rates::Array{Float64,1}
   unk_inds::Array{Int64,1}
@@ -37,9 +41,11 @@ function Exp_prefs(num_samples_desired,
   bw_max,
   bw_min,
   bandwidth_multiplier,
-  noise_sd,
+  true_noise_sd,
+  ass_noise_sd,
   cri_source,
   obs_mol_name,
+  mols_to_show,
   unk_names,
   t_interval,
   num_intervals,
@@ -49,12 +55,15 @@ function Exp_prefs(num_samples_desired,
           bw_min,
           bandwidth_multiplier,
 
-          noise_sd,
+          true_noise_sd,
+          ass_noise_sd,
 
           cri_source,
+          false,       #verbose default
 
           obs_mol_name,
           0,          #obs_mol_ind to be filled in later
+          mols_to_show,
           unk_names,
           Float64[], #unk_rates
           Int64[], #unk_inds
@@ -74,6 +83,7 @@ function print_exp_prefs(ep::Exp_prefs)
   println("bw_min: ", ep.bw_min)
   println("bandwidth_multiplier: ", ep.bandwidth_multiplier)
   println("cri_source: ", ep.cri_source)
+  println("verbose: ", ep.verbose)
   println("obs_mol_name: ", ep.obs_mol_name)
   println("unk_names: ", ep.unk_names)
   println("t_interval: ", ep.t_interval)
@@ -84,6 +94,7 @@ function print_exp_prefs(ep::Exp_prefs)
 end
 
 include("plot_biv_at_each_stage.jl")
+include("plot_state_CI.jl")
 include("start_off_test.jl")
 include("pick_up_test.jl")
 
@@ -98,6 +109,7 @@ function make_all_plots(save_path)
     #space to add time-series and histogram plots later
   cd()
   cd(wd)
+  #plot_save_trajec_CIs(save_path)
 end
 
 end

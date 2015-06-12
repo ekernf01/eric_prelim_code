@@ -1,5 +1,5 @@
 function plot_save_marginals(MCS::pMCMC_julia.MCMC_state, save_folder::String, ground_truth_params=[], ground_truth_state=[])
-  println("Warning: plot_save_marginals not cuurrently being maintained. Anything might happen.")
+  println("Warning: plot_save_marginals not currently being maintained. Anything might happen.")
   num_particles = MCS.current_sample.num_particles
   par_dim = MCS.current_sample.par_dim
   state_dim = MCS.current_sample.state_dim

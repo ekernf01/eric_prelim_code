@@ -1,30 +1,3 @@
-# This module implements the particle MCMC method from Darren Wilkinson's 2009 paper
-# "Parameter inference for stochastic kinetic models of bacterial gene regulation: a Bayesian approach to systems biology"
-# The method is for Bayesian inference on hidden markov models of continuous time-series data.
-# This code currently supports only state spaces consisting of ordered lists of integers and parameter spaces contained in R^n.
-# The main call is like this:
-#
-# using pMCMC_julia
-# pMCMC(d_obs, t_obs, current_MCMC_state::MCMC_state, emission_logden::Function, fwd_sim::Function)
-#
-# It requires as input:
-# Data: a vector of observations d_obs and times t_obs when they were made
-# Preferences for the sampler in the form of current_MCMC_state
-# Samples from your prior distribution on the initial state and on the params in the form of current_MCMC_state's current_sample field
-# A fast routine fwd_sim() to simulate your model of choice forwards for an arbitrary amount of (simlated) time.
-#   It should take:
-#     parameters, (latent) initial state, desired duration
-#   It should return:
-#     Hidden state after simulation of desired duration
-# A fast routine emission_logden() to compute the log-density of the measurement error
-#   It should take:
-#     Hidden state x_ob that may have happened at a given time, observation/emission from the same time point d_ob
-#   It should return:
-#     log-density of the measurement error assuming x_ob gave rise to d_ob, or in other language, log of the emission density e(d_ob|x_ob)
-
-#This module also contains functions to plot and save results.
-
-
 module pMCMC_julia
 using Distributions
 using HDF5, JLD
@@ -60,6 +33,8 @@ function Sample_state_and_params_type(num_particles::Int64, par_dim::Int64, stat
   return new_object
 end
 end
+
+#Checks an object of type Sample_state_and_params_type_data_check for internal consistency.
 function Sample_state_and_params_type_data_check(ssp::Sample_state_and_params_type)
   mismatch1 = (ssp.par_dim != size(ssp.params)[1])
   mismatch2 = (ssp.state_dim != size(ssp.state)[1])
@@ -96,10 +71,47 @@ type MCMC_state
   fwd_sim::Function
   emission_logden::Function
   current_sample::Sample_state_and_params_type
+  save_intermed::Bool
   save_path::String
 end
 
-default_path = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/project_specific/experiment_default_save_spot"
+###################
+#constructor to avoid breaking backwards compatibility
+MCMC_state(
+  verbose::Bool,
+  pause_len::Int64,
+  burnin_len::Int64,
+  thin_len::Int64,
+  bandwidth_multiplier::Float64,
+  bw_max::Float64,
+  bw_min::Float64,
+  do_kde::Bool,
+  num_acc::Array{Int64, 1},
+  stage::Int64,
+  fwd_sim::Function,
+  emission_logden::Function,
+  current_sample::Sample_state_and_params_type,
+  #save intermed is lacking here but not below
+  save_path::String) = MCMC_state(
+
+  verbose::Bool,
+  pause_len::Int64,
+  burnin_len::Int64,
+  thin_len::Int64,
+  bandwidth_multiplier::Float64,
+  bw_max::Float64,
+  bw_min::Float64,
+  do_kde::Bool,
+  num_acc::Array{Int64, 1},
+  stage::Int64,
+  fwd_sim::Function,
+  emission_logden::Function,
+  current_sample::Sample_state_and_params_type,
+  true::Bool,
+  save_path::String)
+###################
+
+#empty default constructor
 MCMC_state() = MCMC_state(
   false,   #verbose
   3,       #pause_len
@@ -114,7 +126,8 @@ MCMC_state() = MCMC_state(
   (x -> x), #fwd_sim
   (x -> 0), #emission_logden
   Sample_state_and_params_type(0, 0, 0),
-  default_path #save_path
+  false,     #save_intermed::Bool
+  "" #save_path
 )
 
 #Saves the MCMC_state object to folder MCS.save_path, using the file name save_file.
@@ -135,27 +148,13 @@ function MCS_save(save_name::String, MCS::MCMC_state)
         "stage", MCS.stage,
         "current_sample_params", MCS.current_sample.params,
         "current_sample_state", MCS.current_sample.state,
+        "save_intermed",MCS.save_intermed,
         "save_path", MCS.save_path)
 end
 
 #Loads the MCMC_state object from the file at save_path
 function MCS_load(save_path)
    loaded_dict = load(save_path)
-  #,
-#                       MCS.verbose, "verbose",
-#                       MCS.pause_len, "pause_len",
-#                       MCS.burnin_len, "burnin_len",
-#                       MCS.thin_len, "thin_len",
-#                       MCS.bandwidth_multiplier, "bandwidth_multiplier",
-#                       MCS.bw_max, "bw_max",
-#                       MCS.bw_min, "bw_min",
-#                       MCS.do_kde, "do_kde",
-#                       MCS.num_acc, "num_acc",
-#                       MCS.stage, "stage",
-#                       MCS.fwd_sim, "fwd_sim",
-#                       MCS.emission_logden, "emission_logden",
-#                       MCS.current_sample, "current_sample",
-#                       MCS.save_path, "save_path")
   MCS = MCMC_state(loaded_dict["verbose"],
                   loaded_dict["pause_len"],
                   loaded_dict["burnin_len"],
@@ -169,10 +168,13 @@ function MCS_load(save_path)
                   x->x, #fwd_sim
                   x->0, #emission_logden
                   Sample_state_and_params_type(loaded_dict["current_sample_params"],loaded_dict["current_sample_state"]),
+                  loaded_dict["save_intermed"],
                   loaded_dict["save_path"])
   return MCS
 end
 
+#Checks for internal inconsistency in an MCMC_state object.
+#Not thorough objects with inconsistent data may escape detection.
 function MCMC_state_data_check(current_sampler_state::MCMC_state)
   if length(current_sampler_state.num_acc!=stage)
     error("MCMC_state has mismatched fields: stage and num_acc")
@@ -188,6 +190,7 @@ end
 #a large sample from P(params|data to time i)
 function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
   println("WARNING: pMCMC! modifies the MCMC_state objects that it is given.")
+
   I = length(d_obs)
   for stage = 1:I #by stage, I mean how much data has been conditioned upon. At stage 2, we've conditioned on 2 data points.
     #report progress
@@ -196,10 +199,12 @@ function pMCMC!(d_obs, t_obs, MCS::MCMC_state)
     #check data to see if pMCMC_single_stage! introduced any errors
     Sample_state_and_params_type_data_check(MCS.current_sample)
 
-    println("In pMCMC!, MCS.save_path is ", MCS.save_path)
 
     #save samples
-    pMCMC_julia.MCS_save(string("stage",MCS.stage, "sample"), MCS)
+    if MCS.save_intermed
+      println("In pMCMC!, saving to ", MCS.save_path)
+      pMCMC_julia.MCS_save(string("stage",MCS.stage, "sample"), MCS)
+    end
 
     #fold in more data
     if stage>1
@@ -253,7 +258,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
   bw_this_stage = [minimum([cand_bw, MCS.bw_max]) for cand_bw in bw_this_stage]
   bw_this_stage = [maximum([cand_bw, MCS.bw_min]) for cand_bw in bw_this_stage]
   bw_this_stage = mean(bw_this_stage)
-  println("Current bandwidths: ", bw_this_stage)
+  #println("Current bandwidths: ", bw_this_stage)
   if MCS.do_kde
     kde_kernel = Normal(0,1)
   end
@@ -278,7 +283,7 @@ function pMCMC_single_stage!(d_obs_this_stage, T_sim_this_stage, MCS::MCMC_state
       prop_sample_params = prop_sample_params.*exp(bw_this_stage.*rand(kde_kernel, MCS.current_sample.par_dim))#do kde as if in log space
     end
     #This LF-MCMC requires you to generate the proposal for the hidden state by simulating, conditioned on the proposed parameters.
-    prop_sample_state = MCS.fwd_sim(prop_sample_state, prop_sample_params, T_sim_this_stage)
+    prop_sample_state = MCS.fwd_sim(prop_sample_state, prop_sample_params, T_sim_this_stage, MCS.verbose)
     if MCS.verbose
       println("prop_sample_params after KDE is: ", prop_sample_params)
       println("prop_sample_state after fwd sim is: ", prop_sample_state)
@@ -361,4 +366,92 @@ function eric_pause(num_secs)
     j = i^2
   end
 end
+
+
+#Implementation of a Geweke test for this pMCMC module using a
+#standard normal noise model and a simple forward model x(t+1) = x(t) + round(theta).
+#The simulation time is 1.
+#The prior on theta is unif(0, 10).
+#The ``prior'' on x(0) is a point mass at 1.
+#first, helpers.
+  geweke_noise_dist = Normal(0,1)
+  geweke_prior_params() = [10*rand(1)]
+  geweke_prior_state() = [1]
+  geweke_fwd_sim(prop_sample_state, prop_sample_params, T_sim_this_stage, verbose) = prop_sample_state + convert(Int64, round(prop_sample_params[1]))
+  geweke_emission_logden(x_current, d_obs) = logpdf(geweke_noise_dist, d_obs-x_current[1,1])
+  geweke_get_d(sample_state) = sample_state[1] + rand(geweke_noise_dist)
+  #Need to be able to perform a single MH iteration.
+  #One easy way: imagine a run with just a few particles.
+  #Might as well run 10 times and get some bang for your buck, hence the thin.
+
+
+function single_MCMC_step(obs::Float64)
+  num_particles = 1000
+  params_2d = zeros(Float64, length(geweke_prior_params()), num_particles)
+  state_2d = zeros(Int64, length(geweke_prior_state()), num_particles)
+  for i in 1:num_particles
+    params_2d[:,i] = geweke_prior_params()
+    state_2d[:,i] = geweke_prior_state()
+  end
+
+  geweke_MCS = MCMC_state(
+   false,#verbose::Bool
+    1, #pause_len::Int64
+    0, #burnin_len::Int64
+    10, #thin_len::Int64
+    0, #bandwidth_multiplier::Float64
+    0, #bw_max::Float64
+    0, #bw_min::Float64
+    false, #do_kde::Bool
+    Int64[], #num_acc::Array{Int64, 1}
+    0, #stage::Int64
+    geweke_fwd_sim, #fwd_sim::Function
+    geweke_emission_logden, #emission_logden::Function
+    Sample_state_and_params_type(params_2d, state_2d), #current_sample::Sample_state_and_params_type
+    false, #save_intermed::Bool
+    "Users/EricKernfeld/Desktop" #save_path::String
+   )#MCMC_state
+  pMCMC_single_stage!(obs, [1.0], geweke_MCS)#pMCMC
+  return_particle = sample(1:geweke_MCS.current_sample.num_particles)
+  return geweke_MCS.current_sample.params[:, return_particle],geweke_MCS.current_sample.state[:,return_particle]
 end
+
+function simple_geweke_test(samp_size)
+
+  #because the pMCMC module is written for more complicated situations, the state/params arrays must be 2d.
+  forward_params = zeros(Float64, 1, samp_size)
+  forward_states = zeros(Int64, 1, samp_size)
+  forward_obs = zeros(Float64, samp_size)
+
+  #Geweke compares two samples that should be the same.
+  #One comes from a forward sampling process: just get synthetic data from the generative model.
+  for i in 1:samp_size
+    forward_params[:, i] = geweke_prior_params()
+    forward_states[:, i] = geweke_fwd_sim(geweke_prior_state(), forward_params[:, i], 1, false)
+    forward_obs[i] = geweke_get_d(forward_states[:,i])
+  end
+
+  #The other sample that Geweke looks at comes from a Markov chain.
+  #start with empty space and a single forward draw theta, x, d
+  mc_params = zeros(Float64, 1,samp_size)
+  mc_states = zeros(Int64, 1,samp_size)
+  mc_obs = zeros(Float64, 1,samp_size)
+  mc_params[:,1] = forward_params[:,1]
+  mc_states[:,1] = forward_states[:,1]
+  mc_obs[1] = forward_obs[1]
+
+  #alternate the MCMC transition with regenerating data many times
+  for i in 2:samp_size
+    #Resample theta using pMCMC
+    mc_params[:,i], mc_states[:,i] = single_MCMC_step(mc_obs[i-1])
+    #Resample d using theta, x
+    mc_obs[i] = geweke_get_d(mc_states[:,i])
+  end
+
+  geweke_fwd_samp = (forward_params,forward_states,forward_obs)
+  geweke_mc_samp = (mc_params,mc_states,mc_obs)
+  return (geweke_fwd_samp, geweke_mc_samp)
+end
+
+end
+

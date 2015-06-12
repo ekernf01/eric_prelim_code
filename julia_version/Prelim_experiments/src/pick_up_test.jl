@@ -12,13 +12,14 @@ function pick_up_test(save_path, num_stages_to_try)
     wilk_cri = loaded_dict["wilk_cri"]
     sim_results = loaded_dict["sim_results"]
 
-  noise_distribution = Normal(0, ep.noise_sd)
+  true_noise_dist = Normal(0, ep.true_noise_sd)
+  ass_noise_dist = Normal(0, ep.ass_noise_sd)
   T_sim = ep.t_interval*ep.num_intervals
   t_obs = ep.t_interval*[1:ep.num_intervals]
 
   #Have to set up the model for emissions again because I can't figure out how to save functions
   function emission_logden(x_current, d_obs)
-    log_density = logpdf(noise_distribution, d_obs-x_current[ep.obs_mol_ind])
+    log_density = logpdf(ass_noise_dist, d_obs-x_current[ep.obs_mol_ind])
     return log_density
   end
   MCS.emission_logden = emission_logden

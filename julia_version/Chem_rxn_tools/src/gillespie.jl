@@ -1,41 +1,6 @@
-
-# ——————————————————————————————————————————————
-# Forward simulation files:
-# gillespie.jl
-
-# At the core, written partly in C and called by many other parts of the project, is the forward simulator.
-
-# Unit tests should:
-# --feed it garbage: strings, negative numbers and fractions where only positive numbers or integers should be, matrices where it needs vectors, stuff that's the wrong length
-# --Run it many times on a simple reaction model and check to see it converge to the true stochastic mean
-# ——————————————————————————————————————————————
-# Given:
-
-# init_x, the particle counts
-# sto_mat, the stoichiometry matrix, the matrix whose i,j entry says how many
-#      molecules of type i are consumed by a rxn of type j (net change)
-# rxn_entry_mat, the matrix whose i,j entry says how many molecules
-#      of type i enter a rxn of type j (not a net change)
-# rxn_rates, reaction rates, MEASURED IN INTENSITY PER SECOND
-# T_sim, the time over which to simulate, MEASURED IN SECONDS
-# inside_sampler, a boolean telling it whether this run is inside the LF-pMCMC
-# sto_mat_nonzero_inds and rxn_entry_mat_nonzero_inds are arrays that help take advantage of sparsity.
-# For the jth reaction, sto_mat_nonzero_inds[j] is an array of indices so that sto_mat[sto_mat_nonzero_inds[j][i], j] is nonzero (and nothing else is).
-# Similar for rxn_entry_mat.
-
-# It verifies:
-
-# rxn_entry_mat is same size as sto_mat
-# init_x, sto_mat, rxn_entry_mat are nonnegative integers
-# length of init_x matches num rows of sto_mat
-# length of rxn_rates matches num cols of sto_mat
-# T_sim is a nonnegative float or double
-
-# Then, it runs the Gillespie algorithm to produce:
-
-# rxn_times, vector of times at which reactions occur (for convenience, rxn_time[1] should be 0)
-# rxn_types, list of reactions that occured (integers that index sto_mat)
-# x_path, a list of vectors with first element init_x and ith element showing the molecule counts between rxn_time[i-1] and rxn_time[i].
+#Given a Chem_rxn_info object and a simulation time (a positive real scalar), gillespie returns either:
+#  if inside_sampler is true, the molecule counts at time T_sim
+#  if inside_sampler is false, a Chem_sim_result object.
 
 function gillespie(cri::Chem_rxn_info, T_sim::Float64, inside_sampler::Bool)
 

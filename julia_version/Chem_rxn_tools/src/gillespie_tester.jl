@@ -94,7 +94,6 @@ function gillespie_stoch_mean_test_sampler_version(num_runs, k, n_0)
 end
 
 
-
 gillespie_stoch_mean_test_sampler_version(100, 0.1, 50)
 gillespie_stoch_mean_test(100, 0.1, 50)
 gillespie_basic_test()

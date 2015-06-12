@@ -1,3 +1,9 @@
+#plots results of an already-completed forward simulation and
+#saves the figures to today_filepath. Uses the simulation with
+#results stored in the Chem_sim_result object sim_results and
+#metadata from the Chem_rxn_info object cri. Plots will show the
+#molecules named in mols_to_show, which should be an array of strings.
+
 function plot_save_sim_data(today_filepath, sim_results::Chem_sim_result, cri::Chem_rxn_info, mols_to_show)
   #Observed data and true value at that coordinate
   x_obs_coord = Array(Int64,length(sim_results.t_obs))

@@ -22,7 +22,7 @@
 # This list of output is out of date
 
 function SBML_read(SBML_file_path)
-
+  println("Warning: SBML_read is not guaranteed to work properly. Check your results. Maybe make_cri_graphic() would help.")
   SBML_file = open(SBML_file_path)
   lines = readlines(SBML_file)
 

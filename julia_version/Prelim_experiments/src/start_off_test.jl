@@ -1,14 +1,14 @@
 function start_off_test(ep::Exp_prefs, num_stages_to_try::Int64)
 
-  noise_distribution = Normal(0, ep.noise_sd)
+  true_noise_dist = Normal(0, ep.true_noise_sd)
+  ass_noise_dist = Normal(0, ep.ass_noise_sd)
   T_sim = ep.t_interval*ep.num_intervals
   t_obs = ep.t_interval*[1:ep.num_intervals]
 
   #-----------------------------Load in info from SBML shorthand, set priors------------------------------
   if ep.cri_source == "wilk"
-    SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/wilkinson_rxns_SBML_shorthand.txt"
+    SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_version/Chem_rxn_tools/src/wilkinson_rxns_SBML_shorthand.txt"
     wilk_cri = Chem_rxn_tools.SBML_read(SBML_file)
-    mols_to_show = ["SigD", "Hag", "CodY"]
     #log uniform prior on 1*10^-4 to 1*10^0 for the 3 unknowns:
       #log(kSigDprod) ∼ Unif(log{0.01}, log{100}),
       #log(kflacherep) ∼ Unif(log{0.0002}, log{2}),
@@ -18,10 +18,15 @@ function start_off_test(ep::Exp_prefs, num_stages_to_try::Int64)
       param_sample[2, :] = 2*(10.^(-4*rand(1,ep.num_samples_desired)))
       param_sample[3, :] = 10.^(1 - 4*rand(1,ep.num_samples_desired))
       state_sample = repmat(wilk_cri.init_amts,1,ep.num_samples_desired)
-  else
+  elseif ep.cri_source == "demo"
     wilk_cri = Chem_rxn_tools.make_demo_cri_v2()
+    param_sample = zeros(2,ep.num_samples_desired)
+    param_sample[1, :] = 10.^(-2 - 4*rand(1,ep.num_samples_desired))
+    param_sample[2, :] = 10.^(0 - 4*rand(1,ep.num_samples_desired))
+    state_sample = repmat(wilk_cri.init_amts,1,ep.num_samples_desired)
+  else
+    error("For ep.cri_source, specify either \"wilk\" or \"demo\" .")
   end
-
 #-----------------------------Extract info from cri about unknowns------------------------------
   ep.unk_inds = Int64[]
   ep.num_unks = length(ep.unk_names)
@@ -31,7 +36,7 @@ function start_off_test(ep::Exp_prefs, num_stages_to_try::Int64)
   end
   #Sanity check:
   println("For current Chem_rxn_info to match Exp_prefs:")
-  for i in 1:3
+  for i in 1:ep.num_unks
     println(string(ep.unk_names[i], " with rate ", ep.unk_rates[i], " should be: ", wilk_cri.rxn_labels[ep.unk_inds[i]], " with rate ", wilk_cri.rxn_rates[ep.unk_inds[i]] ,"."))
   end
 println("start_off_line 39")
@@ -46,6 +51,8 @@ println("start_off_line 39")
   MCS.bw_min = ep.bw_min
   MCS.do_kde = true
 
+  MCS.verbose = ep.verbose
+
   MCS.burnin_len = 1e3
   MCS.thin_len = 5
   MCS.current_sample = pMCMC_julia.Sample_state_and_params_type(param_sample, state_sample)
@@ -53,7 +60,7 @@ println("start_off_line 39")
   ep.obs_mol_ind = Chem_rxn_tools.get_chem_indices(wilk_cri, ep.obs_mol_name)
   #Set up the model for emissions
   function emission_logden(x_current, d_obs)
-    log_density = logpdf(noise_distribution, d_obs-x_current[ep.obs_mol_ind])
+    log_density = logpdf(ass_noise_dist, d_obs-x_current[ep.obs_mol_ind])
     return log_density
   end
   MCS.emission_logden = emission_logden
@@ -61,11 +68,15 @@ println("start_off_line 39")
   println("WARNING: fwd_sim WILL MODIFY wilk_cri WHEN pMCMC_julia.pMCMC IS CALLED.")
   println("It speeds things up not to copy the whole object.")
   println("Likely consequence: screwing up the init.amts field.")
-  function fwd_sim(prev_sample_state::Array{Int64, 1}, prop_sample_params::Array{Float64, 1}, T_sim::Float64)
+  function fwd_sim(prev_sample_state::Array{Int64, 1}, prop_sample_params::Array{Float64, 1}, T_sim::Float64, verbose::Bool)
     for i in 1:ep.num_unks
       wilk_cri.rxn_rates[ep.unk_inds[i]] = prop_sample_params[i]
     end
     wilk_cri.init_amts = prev_sample_state
+    if verbose
+      println("fwd_sim using wilk_cri.rxn_rates: ", wilk_cri.rxn_rates)
+      println("fwd_sim using wilk_cri.init_amts: ", wilk_cri.init_amts)
+    end
     return Chem_rxn_tools.gillespie(wilk_cri, T_sim, true)
   end
   MCS.fwd_sim = fwd_sim
@@ -75,8 +86,8 @@ println("start_off_line 39")
   MCS.save_path = joinpath(ep.save_folder, string(ep.time_of_test))
   mkdir(MCS.save_path)
 #-----------------------------Simulate the observations; plot; save plot-------------------------------
-sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, ep.obs_mol_name, noise_distribution)
-  Chem_rxn_tools.plot_save_sim_data(MCS.save_path, sim_results, wilk_cri, mols_to_show)
+sim_results = Chem_rxn_tools.make_sim_data(t_obs, wilk_cri, ep.obs_mol_name, true_noise_dist)
+  Chem_rxn_tools.plot_save_sim_data(MCS.save_path, sim_results, wilk_cri, ep.mols_to_show)
 
 metadata_path = joinpath(MCS.save_path, "everything_just_before_inference")
   sim_results.x_path = []

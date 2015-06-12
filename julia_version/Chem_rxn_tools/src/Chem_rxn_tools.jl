@@ -1,16 +1,5 @@
 module Chem_rxn_tools
 println("Apologies: Chem_rxn_tools takes a little while to load.")
-# Module containing tools for:
-# --storing info about chemical reactions
-# --simulating chemical reactions via a markov jump process (implementation of the gillespie algorithm)
-# --reading chemical reaction systems from SBML shorthand (SBML is "systems biology markup language")
-#
-#More information is available in gillespie.jl.
-#
-# Example code:
-# SBML_file = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/chem_rxn_tools/wilkinson_rxns_SBML_shorthand.txt"
-# using Chem_rxn_tools
-# wilk_cri = SBML_read(SBML_file)
 
 #-------------------------------------Data structures-------------------------------------
 #-------------------------------------CRI-------------------------------------
@@ -80,24 +69,25 @@ function Chem_rxn_info(
 
   println("Warning: always run chem_rxn_data_check!() after populating a Chem_rxn_info object.")
   return (Chem_rxn_info(
-  String[],                            #species_labels
-  Int64[],                             #init_amts
-  0,                                   #num_species
+
+
+  species_labels,
+  init_amts,
+  num_species,
 
   Array{Int64}[],                      #sto_mat_nonzero_inds
   Array{Int64}[],                      #rxn_entry_mat_nonzero_inds
-  zeros(Int64, 0, 0),                  #sto_mat
-  zeros(Int64, 0, 0),                  #rxn_entry_mat
+  sto_mat,
+  rxn_entry_mat,
 
-  String[],                            #rxn_labels
-  0,                                   #num_rxns
-  Float64[],                           #rxn_rates
-  String[],                            #rxns_written_out
+  rxn_labels,
+  num_rxns,
+  rxn_rates,
+  rxns_written_out,
 
-  Int64[],                             #rxn_pos_in_SBML_file
-  String[],                            #SBML_par_names
-  Float64[]                            #SBML_par_vals
-  ))
+  rxn_pos_in_SBML_file,
+  SBML_par_names,
+  SBML_par_vals))
 end
 
 #-------------------------------------Chem_sim_result-------------------------------------
