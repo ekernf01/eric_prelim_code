@@ -1,7 +1,0 @@
-Notes
-
-The first day of experiments, May 8th, showed poor results, indicating the sampler probably contains an error. To simplify the situation, this second day of experiments has no dynamical systems component: no chemical reactions occur, and we just try to infer the initial state given multiple measurements. One-dimensional underlying state, flat prior, binomial error. The posterior is way off in round one, which used 1000 particles. 
-
-Round 2 used 100,000 particles. It took 50 seconds. The posterior is still narrow and in the wrong place. A replicate, round 3, took 45 seconds and still had a narrow spike in the wrong place. The two wrong posteriors were different from one another. On that run, num_acc, a vector recording how many steps were accepted, claimed that every sample was accepted. 
-
-I then found an very simple explanation, a mistake in pMCMC_single_stage!. The next experiment was promising: a wider posterior, centered around 90. This is probably a problem with the measurement error model not being symmetric, so I checked that. Round5 had the posterior centered in the right place! Almost. At least, the true value was assigned positive probability. Rounds 4 and 5 took about 50 seconds each. 

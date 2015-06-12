@@ -1,4 +1,0 @@
-codY -> codY + CodY 
-CodY -> ∅flache -> flache + SigDSigD -> ∅SigD_hag -> SigD + hag + HagHag -> ∅SigD + hag -> SigD_hagSigD hag -> SigD + hag 
-CodY + flache -> CodY_flacheCodY_flache -> CodY + flache 
-CodY + hag -> CodY_hagCodY_hag -> CodY + hag

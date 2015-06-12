@@ -1,9 +1,0 @@
-This series of tests is designed to see whether using a fairly large bandwidth during resampling can help alleviate the sample impoverishment problem in Wilkinson’s scheme. Rounds one through three use 1_000, 10_000, and 100_000 samples with a bandwidth of 0.5 (normal kernel). Results were still bad, essentially showing descendents of only 1 or 2 particles, but with wider clouds around them. 
-
-Round 4 helped debug a new feature: saving samples at every stage.
-Round 5 helped debug another new feature: contour plots.
-Round 6 helped debug another new feature: switch to @save and @load.
-
-Finally, with some assurance that data would be saved and plotted properly, Round 7 used 1_000_000 particles with a bandwidth of 0.5 (normal kernel). This trial lasted saturday afternoon to Monday morning. It didn’t save properly, so I started it again on Monday evening. My desktop was still not available on Monday evening. I ended up just plotting the distribution conditioned on only the first 23 data points, because of what I had saved. It had some overlap with the true value, but was just a single sphere, and did not match Wilkinson’s result.
-
-Wilkinson replied to my email saying he used he doesn’t remember exactly, but something like the Silverman’s rule bandwidth divided by 10. That will be the subject of the next round of tests.
