@@ -15,7 +15,7 @@ Round 5/6: abandoned this idea and went back to on that had showed promise befor
 
 Round 7 tried that but with 1_000_000 particles. Round 8 used 10_000_000 particles. Round 9 lenghtened the intervals back to 30 seconds, doubling the simulation time. Results showed definite spatial patterns, but were otherwise discouraging.
 
-At round 10, I de-coupled the assumed noise sd from the true noise sd and did a 500-second run (50 10-sec intervals) with 1e6 particles.
+At round 10, I de-coupled the assumed noise sd from the true noise sd and did a 300-second run (10 30-sec intervals) with 1e6 particles.
 
 
 I do not rememeber how many goddam times Julia crashed while I worked on these. Worse than 2/5 by reckoning.

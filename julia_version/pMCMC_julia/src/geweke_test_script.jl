@@ -31,4 +31,3 @@ savedir = "/Users/EricKernfeld/Desktop/Spring_2015/518/eric_prelim_code/julia_ve
   savefig(state_qq,savename)
   savename = joinpath(savedir, "obs.png")
   savefig(obs_qq,savename)
-
